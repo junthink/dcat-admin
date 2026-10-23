@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+const clean = value => typeof value === 'string' ? DOMPurify.sanitize(value, {USE_PROFILES: {html: true}}) : value;
 
 export default class Toastr {
     constructor(Dcat) {
@@ -10,18 +12,18 @@ export default class Toastr {
     }
 
     success(message, title, options) {
-        toastr.success(message, title, options);
+        toastr.success(clean(message), clean(title), options);
     }
 
     error(message, title, options) {
-        toastr.error(message, title, options);
+        toastr.error(clean(message), clean(title), options);
     }
 
     info(message, title, options) {
-        toastr.info(message, title, options);
+        toastr.info(clean(message), clean(title), options);
     }
 
     warning(message, title, options) {
-        toastr.warning(message, title, options);
+        toastr.warning(clean(message), clean(title), options);
     }
 }

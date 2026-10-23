@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Exclude installed dependencies and Git internals from working-tree scans"
+paths = [
+    '''(^|/)vendor/''',
+    '''(^|/)node_modules/''',
+    '''(^|/)\.git/''',
+    '''(^|/)tests/\.browser-(runtime|results)/''',
+]

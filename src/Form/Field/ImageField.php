@@ -4,9 +4,10 @@ namespace Dcat\Admin\Form\Field;
 
 use Dcat\Admin\Exception\AdminException;
 use Illuminate\Support\Str;
-use Intervention\Image\Constraint;
-use Intervention\Image\Facades\Image as InterventionImage;
-use Intervention\Image\ImageManagerStatic;
+use Dcat\Admin\Support\ImageConstraint;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageInterface;
+use Intervention\Image\Drivers\Gd\Driver;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 trait ImageField
@@ -27,6 +28,9 @@ trait ImageField
 
     protected static $interventionAlias = [
         'filling' => 'fill',
+        'greyscale' => 'grayscale',
+        'orientate' => 'orient',
+        'limitColors' => 'reduceColors',
     ];
 
     /**
@@ -49,16 +53,11 @@ trait ImageField
     public function callInterventionMethods($target, $mime)
     {
         if (! empty($this->interventionCalls)) {
-            $image = ImageManagerStatic::make($target);
-
-            $mime = $mime ?: finfo_file(finfo_open(FILEINFO_MIME_TYPE), $target);
-
+            $image = $this->readImage($target);
             foreach ($this->interventionCalls as $call) {
-                call_user_func_array(
-                    [$image, $call['method']],
-                    $call['arguments']
-                )->save($target, null, $mime);
+                $image = $this->applyImageCall($image, $call['method'], $call['arguments']);
             }
+            $image->encodeUsingMediaType($mime ?: mime_content_type($target))->save($target);
         }
 
         return $target;
@@ -79,8 +78,8 @@ trait ImageField
             return parent::__call($method, $arguments);
         }
 
-        if (! class_exists(ImageManagerStatic::class)) {
-            throw new AdminException('To use image handling and manipulation, please install [intervention/image] first.');
+        if (! class_exists(ImageManager::class)) {
+            throw new AdminException('To use image handling and manipulation, please install [intervention/image:^4.4] and GD or Imagick first.');
         }
 
         $this->interventionCalls[] = [
@@ -97,7 +96,7 @@ trait ImageField
      * @param  int  $height
      * @return $this
      */
-    public function thumbnail($name, int $width = null, int $height = null)
+    public function thumbnail($name, ?int $width = null, ?int $height = null)
     {
         if (func_num_args() == 1 && is_array($name)) {
             foreach ($name as $key => $size) {
@@ -172,20 +171,12 @@ trait ImageField
             // We merge original name + thumbnail name + extension
             $path = $path.'-'.$name.'.'.$ext;
 
-            /** @var \Intervention\Image\Image $image */
-            $image = InterventionImage::make($file);
-
+            $image = $this->readImage($file->getRealPath());
             $action = $size[2] ?? 'resize';
-            // Resize image with aspect ratio
-            $image->$action($size[0], $size[1], function (Constraint $constraint) {
-                $constraint->aspectRatio();
-            });
-
-            if (! is_null($this->storagePermission)) {
-                $this->getStorage()->put("{$this->getDirectory()}/{$path}", $image->encode()->stream(), $this->storagePermission);
-            } else {
-                $this->getStorage()->put("{$this->getDirectory()}/{$path}", $image->encode()->stream());
-            }
+            $image = $this->applyImageCall($image, $action === 'resize' ? 'scale' : $action, [$size[0], $size[1]]);
+            $encoded = (string) $image->encodeUsingFileExtension($ext);
+            $options = $this->storagePermission === null ? [] : ['visibility' => $this->storagePermission];
+            $this->getStorage()->put("{$this->getDirectory()}/{$path}", $encoded, $options);
         }
 
         if (! is_array($this->original)) {
@@ -194,4 +185,49 @@ trait ImageField
 
         return $this;
     }
+
+    protected function readImage(string $path): ImageInterface
+    {
+        if (! class_exists(ImageManager::class)) {
+            throw new AdminException('Install [intervention/image:^4.4] to use image transformations.');
+        }
+        $size = getimagesize($path);
+        abort_unless($size && $size[0] * $size[1] <= (int) config('admin.upload.max_image_pixels', 25000000), 422, 'Image dimensions are too large.');
+        $manager = ImageManager::usingDriver(config('admin.upload.image_driver', Driver::class));
+
+        return $manager->decodePath($path);
+    }
+
+    protected function applyImageCall(ImageInterface $image, string $method, array $arguments): ImageInterface
+    {
+        if (in_array($method, ['resize', 'fit', 'widen', 'heighten'], true)) {
+            $constraint = new ImageConstraint();
+            $callbackIndex = in_array($method, ['widen', 'heighten'], true) ? 1 : 2;
+            if (isset($arguments[$callbackIndex]) && is_callable($arguments[$callbackIndex])) {
+                $arguments[$callbackIndex]($constraint);
+            }
+            $width = $method === 'heighten' ? null : ($arguments[0] ?? null);
+            $height = $method === 'heighten' ? ($arguments[0] ?? null) : ($method === 'widen' ? null : ($arguments[1] ?? null));
+            if ($method === 'fit') {
+                $action = $constraint->preventUpsize ? 'coverDown' : 'cover';
+
+                return $image->$action($width, $height ?: $width, $arguments[3] ?? 'center');
+            }
+            $aspect = $constraint->preserveAspectRatio || in_array($method, ['widen', 'heighten'], true);
+            $action = $aspect ? ($constraint->preventUpsize ? 'scaleDown' : 'scale') : ($constraint->preventUpsize ? 'resizeDown' : 'resize');
+
+            return $image->$action($width, $height);
+        }
+        $method = static::$interventionAlias[$method] ?? $method;
+        if (! is_callable([$image, $method])) {
+            throw new AdminException("Image method [{$method}] is unavailable in Intervention Image 4. Update the transformation to the v4 API.");
+        }
+        $result = $image->$method(...$arguments);
+        if (! $result instanceof ImageInterface) {
+            throw new AdminException("Image method [{$method}] must return an image transformation.");
+        }
+
+        return $result;
+    }
+
 }

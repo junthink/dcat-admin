@@ -536,7 +536,7 @@ class Grid
      *
      * @return Collection|$this
      */
-    public function rows(\Closure $callback = null)
+    public function rows(?\Closure $callback = null)
     {
         if ($callback) {
             $this->rowsCallbacks[] = $callback;
@@ -862,7 +862,7 @@ HTML;
      */
     public static function make(...$params)
     {
-        return new static(...$params);
+        return new static(...$params); // @phpstan-ignore new.static (Variadic factory callers supply the concrete subclass constructor arguments.)
     }
 
     /**

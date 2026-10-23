@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
  * @method $this disableExportAll(bool $value = true)
  * @method $this disableExportCurrentPage(bool $value = true)
  * @method $this disableExportSelectedRow(bool $value = true)
+ * @phpstan-consistent-constructor
  */
 abstract class AbstractExporter implements ExporterInterface
 {
@@ -18,6 +19,9 @@ abstract class AbstractExporter implements ExporterInterface
      * @var \Dcat\Admin\Grid
      */
     protected $grid;
+
+    /** @var Collection|null */
+    protected $modelQueries;
 
     /**
      * @var Grid\Exporter
@@ -229,6 +233,11 @@ abstract class AbstractExporter implements ExporterInterface
             foreach ($row as &$v) {
                 if (is_array($v) || is_object($v)) {
                     $v = json_encode($v, JSON_UNESCAPED_UNICODE);
+                }
+                if (strtolower($this->extension) === 'csv' && is_string($v) && ! is_numeric($v)
+                    && preg_match('/^[=+\-@]/', ltrim($v, " \t\r\n"))) {
+                    // CSV has no cell type metadata; neutralize spreadsheet formulas in text.
+                    $v = "'".$v;
                 }
             }
         }

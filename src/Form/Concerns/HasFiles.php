@@ -85,7 +85,7 @@ trait HasFiles
      * 新增页面删除文件.
      *
      * @param  array  $input
-     * @return \Illuminate\Http\JsonResponse
+     * @return \Illuminate\Http\JsonResponse|null
      */
     protected function deleteFileWhenCreating(array $input)
     {
@@ -125,6 +125,11 @@ trait HasFiles
      */
     protected function deleteFile(UploadFieldInterface $field, $input = null)
     {
+        if ($input && request()->has(Field::FILE_DELETE_FLAG)) {
+            abort_unless(method_exists($field, 'assertCanDeleteFiles'), 403, 'This upload field does not support secure deletion.');
+            // Check before replacing the server-loaded original with request input.
+            $field->assertCanDeleteFiles($input);
+        }
         if ($input) {
             if (
                 is_string($input)

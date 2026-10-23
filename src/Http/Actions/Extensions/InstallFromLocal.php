@@ -5,9 +5,12 @@ namespace Dcat\Admin\Http\Actions\Extensions;
 use Dcat\Admin\Grid\Tools\AbstractTool;
 use Dcat\Admin\Http\Forms\InstallFromLocal as InstallFromLocalForm;
 use Dcat\Admin\Widgets\Modal;
+use Dcat\Admin\Traits\RequiresAdministrator;
 
 class InstallFromLocal extends AbstractTool
 {
+    use RequiresAdministrator;
+
     protected $style = 'btn btn-primary';
 
     public function html()

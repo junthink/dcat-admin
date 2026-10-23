@@ -8,8 +8,8 @@ use Illuminate\Support\Arr;
 
 class ExtensionInstallCommand extends Command
 {
-    protected $signature = 'admin:ext-install 
-    {name : The name of the extension. Eg: author-name/extension-name} 
+    protected $signature = 'admin:ext-install
+    {name : The name of the extension. Eg: author-name/extension-name}
     {--path= : The path of the extension.}';
 
     protected $description = 'Install an extension';
@@ -39,7 +39,7 @@ class ExtensionInstallCommand extends Command
 
         $manager->extract($path);
 
-        $this->output->writeln(sprintf('<info>Migrating extension...</info>', $name));
+        $this->output->writeln('<info>Migrating extension...</info>');
 
         Admin::extension()->load();
 

@@ -76,16 +76,16 @@ return [
                 'https'   => 'dn-yourdomain.qbox.me',         //你的HTTPS域名
                 'custom'  => 'static.abc.com',                //你的自定义域名
             ],
-            'access_key' => 'tIyz5h5IDT1-PQS22iRrI4dCBEktWj76O-ls856K',  //AccessKey
-            'secret_key' => 'TCU2GuSlbzxKgnixYO_-pdo4odbXttm1RNNvEwSD',  //SecretKey
+            'access_key' => env('QINIU_ACCESS_KEY'),  //AccessKey
+            'secret_key' => env('QINIU_SECRET_KEY'),  //SecretKey
             'bucket'     => 'laravel',  //Bucket名字
             'notify_url' => '',  //持久化处理回调地址
         ],
 
         'aliyun' => [
             'driver'     => 'oss',
-            'access_id'  => 'LTAIsOQNIDQN78Jr',
-            'access_key' => 'ChsYewaCxm1mi7AIBPRniuncEbFHNO',
+            'access_id'  => env('ALIYUN_ACCESS_ID'),
+            'access_key' => env('ALIYUN_ACCESS_KEY'),
             'bucket'     => 'laravel-admin',
             'endpoint'   => 'oss-cn-shanghai.aliyuncs.com',
         ],

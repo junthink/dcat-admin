@@ -377,6 +377,10 @@ class Manager
 
             $composerProperty = Composer::parse($directory.'/composer.json');
 
+            if (! is_string($composerProperty->name) || ! Helper::validateExtensionName($composerProperty->name)) {
+                throw new RuntimeException('Invalid extension package name.');
+            }
+
             $extensionDir = admin_extension_path($composerProperty->name);
 
             if (! $force && is_dir($extensionDir)) {

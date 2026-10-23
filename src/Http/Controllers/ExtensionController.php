@@ -3,6 +3,7 @@
 namespace Dcat\Admin\Http\Controllers;
 
 use Dcat\Admin\Form;
+use Dcat\Admin\Admin;
 use Dcat\Admin\Grid;
 use Dcat\Admin\Http\Actions\Extensions\InstallFromLocal;
 use Dcat\Admin\Http\Actions\Extensions\Marketplace;
@@ -17,6 +18,15 @@ use Illuminate\Support\Facades\Artisan;
 class ExtensionController extends Controller
 {
     use HasResourceActions;
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            abort_unless(Admin::user() && Admin::user()->isAdministrator(), 403);
+
+            return $next($request);
+        });
+    }
 
     public function index(Content $content)
     {
@@ -44,7 +54,7 @@ class ExtensionController extends Controller
                 }
 
                 foreach ($v as &$item) {
-                    $item = "<span class='text-80'>{$item['name']}</span> <<code>{$item['email']}</code>>";
+                    $item = "<span class='text-80'>".e($item['name'])."</span> &lt;<code>".e($item['email'])."</code>&gt;";
                 }
 
                 return implode('<div style="margin-top: 5px"></div>', $v);

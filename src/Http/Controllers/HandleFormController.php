@@ -3,10 +3,12 @@
 namespace Dcat\Admin\Http\Controllers;
 
 use Dcat\Admin\Exception\AdminException;
+use Dcat\Admin\Contracts\UploadField;
 use Dcat\Admin\Form\Field\Embeds;
 use Dcat\Admin\Form\Field\File;
 use Dcat\Admin\Form\Field\HasMany;
 use Dcat\Admin\Http\JsonResponse;
+use Dcat\Admin\Support\Helper;
 use Dcat\Admin\Traits\HasUploadedFile;
 use Dcat\Admin\Widgets\Form;
 use Illuminate\Http\Request;
@@ -38,15 +40,22 @@ class HandleFormController
     {
         $form = $this->resolveForm($request);
 
+        if (! $form->passesAuthorization()) {
+            return $form->failedAuthorization();
+        }
+
         $form->form();
 
-        return $this->getField($request, $form)->upload($this->file());
+        $field = $this->getField($request, $form);
+        abort_unless($field instanceof UploadField, 400, 'Invalid upload field.');
+
+        return $field->upload($this->file());
     }
 
     /**
      * @param  Request  $request
      * @param $form
-     * @return File
+     * @return File|null
      */
     protected function getField(Request $request, $form)
     {
@@ -76,10 +85,18 @@ class HandleFormController
     {
         $form = $this->resolveForm($request);
 
+        if (! $form->passesAuthorization()) {
+            return $form->failedAuthorization();
+        }
+
         $form->form();
 
         $field = $this->getField($request, $form);
+        abort_unless($field instanceof UploadField, 400, 'Invalid upload field.');
 
+        abort_unless(method_exists($field, 'assertCanDeleteFiles'), 403, 'This upload field does not support secure deletion.');
+        $field->setOriginal($form->data()->toArray());
+        $field->assertCanDeleteFiles($request->key);
         $field->deleteFile($request->key);
 
         return $this->responseDeleted();
@@ -93,15 +110,8 @@ class HandleFormController
      */
     protected function resolveForm(Request $request)
     {
-        if (! $request->has(Form::REQUEST_NAME)) {
-            throw new AdminException('Invalid form request.');
-        }
-
         $formClass = $request->get(Form::REQUEST_NAME);
-
-        if (! class_exists($formClass)) {
-            throw new AdminException("Form [{$formClass}] does not exist.");
-        }
+        abort_unless(Helper::validateClassName($formClass) && is_subclass_of($formClass, Form::class), 400, 'Invalid form class.');
 
         /** @var Form $form */
         $form = app($formClass);

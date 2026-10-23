@@ -16,9 +16,12 @@
 
         <div class="dropdown-divider"></div>
 
-        <a class="dropdown-item" href="{{ admin_url('auth/logout') }}">
-            <i class="feather icon-power"></i> {{ trans('admin.logout') }}
-        </a>
+        <form action="{{ admin_url('auth/logout') }}" method="POST">
+            @csrf
+            <button class="dropdown-item" type="submit">
+                <i class="feather icon-power"></i> {{ trans('admin.logout') }}
+            </button>
+        </form>
     </div>
 </li>
 @endif

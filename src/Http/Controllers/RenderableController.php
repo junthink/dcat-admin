@@ -48,8 +48,9 @@ class RenderableController
     protected function newRenderable(Request $request): LazyRenderable
     {
         $class = $request->get('renderable');
-
+        abort_unless(is_string($class), 400, 'Invalid renderable request.');
         $class = str_replace('_', '\\', $class);
+        abort_unless(Helper::validateClassName($class) && is_subclass_of($class, LazyRenderable::class), 400, 'Invalid renderable class.');
 
         $renderable = new $class();
 

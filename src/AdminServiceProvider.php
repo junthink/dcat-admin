@@ -49,6 +49,7 @@ class AdminServiceProvider extends ServiceProvider
         Console\ExtensionDiableCommand::class,
         Console\ExtensionUpdateCommand::class,
         Console\UpdateCommand::class,
+        Console\PruneUploadsCommand::class,
     ];
 
     /**
@@ -89,6 +90,8 @@ class AdminServiceProvider extends ServiceProvider
 
     public function register()
     {
+        $this->mergeConfigFrom(__DIR__.'/../config/admin.php', 'admin');
+
         $this->aliasAdmin();
         $this->loadAdminAuthConfig();
         $this->registerRouteMiddleware();
@@ -116,8 +119,8 @@ class AdminServiceProvider extends ServiceProvider
 
     protected function aliasAdmin()
     {
-        if (! class_exists(\Admin::class)) {
-            class_alias(Admin::class, \Admin::class);
+        if (! class_exists('Admin')) {
+            class_alias(Admin::class, 'Admin');
         }
     }
 
@@ -134,7 +137,7 @@ class AdminServiceProvider extends ServiceProvider
     protected function ensureHttps()
     {
         if (config('admin.https') || config('admin.secure')) {
-            \URL::forceScheme('https');
+            \Illuminate\Support\Facades\URL::forceScheme('https');
             $this->app['request']->server->set('HTTPS', true);
         }
     }

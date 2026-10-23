@@ -31,7 +31,7 @@ class Admin
     use HasAssets;
     use HasHtml;
 
-    const VERSION = '2.2.2-beta';
+    const VERSION = '3.0.0-dev';
 
     const SECTION = [
         // 往 <head> 标签内输入内容
@@ -89,7 +89,7 @@ class Admin
      * @param  Closure|null  $builder
      * @return Menu
      */
-    public static function menu(Closure $builder = null)
+    public static function menu(?Closure $builder = null)
     {
         $menu = app('admin.menu');
 
@@ -157,7 +157,7 @@ class Admin
      * @param  Closure|null  $builder
      * @return Navbar
      */
-    public static function navbar(Closure $builder = null)
+    public static function navbar(?Closure $builder = null)
     {
         $navbar = app('admin.navbar');
 
@@ -209,7 +209,7 @@ class Admin
      * @param  Closure|null  $builder
      * @return SectionManager
      */
-    public static function section(Closure $builder = null)
+    public static function section(?Closure $builder = null)
     {
         $manager = app('admin.sections');
 
@@ -523,7 +523,7 @@ class Admin
      * @param  array|null  $variables
      * @return string
      */
-    public static function jsVariables(array $variables = null)
+    public static function jsVariables(?array $variables = null)
     {
         $jsVariables = static::context()->jsVariables ?: [];
 
@@ -542,7 +542,8 @@ class Admin
 
         $jsVariables['pjax_container_selector'] = $pjaxId ? ('#'.$pjaxId) : '';
         $jsVariables['token'] = csrf_token();
-        $jsVariables['lang'] = ($lang = __('admin.client')) ? array_merge($lang, $jsVariables['lang'] ?? []) : [];
+        $lang = __('admin.client');
+        $jsVariables['lang'] = array_merge(is_array($lang) ? $lang : [], $jsVariables['lang'] ?? []);
         $jsVariables['colors'] = static::color()->all();
         $jsVariables['dark_mode'] = static::isDarkMode();
         $jsVariables['sidebar_dark'] = config('admin.layout.sidebar_dark') || ($sidebarStyle === 'dark');
@@ -597,7 +598,7 @@ class Admin
 
                 $router->get('auth/login', $authController.'@getLogin');
                 $router->post('auth/login', $authController.'@postLogin');
-                $router->get('auth/logout', $authController.'@getLogout');
+                $router->post('auth/logout', $authController.'@getLogout');
                 $router->get('auth/setting', $authController.'@getSetting');
                 $router->put('auth/setting', $authController.'@putSetting');
             });

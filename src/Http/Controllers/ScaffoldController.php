@@ -64,7 +64,7 @@ class ScaffoldController extends Controller
 
     public function index(Content $content)
     {
-        if (! config('app.debug')) {
+        if (! config('app.debug') || ! Admin::user() || ! Admin::user()->isAdministrator()) {
             Permission::error();
         }
 
@@ -104,7 +104,7 @@ class ScaffoldController extends Controller
 
     public function store(Request $request)
     {
-        if (! config('app.debug')) {
+        if (! config('app.debug') || ! Admin::user() || ! Admin::user()->isAdministrator()) {
             Permission::error();
         }
 
@@ -187,7 +187,12 @@ class ScaffoldController extends Controller
      */
     public function table()
     {
-        $db = addslashes(\request('db'));
+        if (! config('app.debug') || ! Admin::user() || ! Admin::user()->isAdministrator()) {
+            Permission::error();
+        }
+
+        request()->validate(['db' => 'required|string', 'tb' => 'required|string']);
+        $db = \request('db');
         $table = \request('tb');
         if (! $table || ! $db) {
             return ['status' => 1, 'list' => []];
@@ -224,17 +229,19 @@ class ScaffoldController extends Controller
                     continue;
                 }
 
-                $sql = sprintf('SELECT * FROM information_schema.columns WHERE table_schema = "%s"', $value['database']);
+                $sql = 'SELECT * FROM information_schema.columns WHERE table_schema = ?';
+                $bindings = [$value['database']];
 
                 if ($tb) {
                     $p = Arr::get($value, 'prefix');
 
-                    $sql .= " AND TABLE_NAME = '{$p}{$tb}'";
+                    $sql .= ' AND TABLE_NAME = ?';
+                    $bindings[] = $p.$tb;
                 }
 
                 $sql .= ' ORDER BY `ORDINAL_POSITION` ASC';
 
-                $tmp = DB::connection($connectName)->select($sql);
+                $tmp = DB::connection($connectName)->select($sql, $bindings);
 
                 $collection = collect($tmp)->map(function ($v) use ($value) {
                     if (! $p = Arr::get($value, 'prefix')) {

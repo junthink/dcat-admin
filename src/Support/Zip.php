@@ -65,21 +65,61 @@ class Zip extends ZipArchive
      */
     public static function extract($source, $destination, $options = [])
     {
-        extract(array_merge([
-            'mask' => 0777,
-        ], $options));
-
-        if (file_exists($destination) || mkdir($destination, $mask, true)) {
-            $zip = new ZipArchive;
-            if ($zip->open($source) === true) {
-                $zip->extractTo($destination);
-                $zip->close();
-
-                return true;
-            }
+        $zip = new ZipArchive;
+        if ($zip->open($source) !== true) {
+            return false;
         }
 
-        return false;
+        try {
+            $maxFiles = (int) ($options['max_files'] ?? 10000);
+            $maxSize = (int) ($options['max_size'] ?? 268435456);
+            if ($zip->numFiles > $maxFiles) {
+                return false;
+            }
+
+            $size = 0;
+            for ($index = 0; $index < $zip->numFiles; $index++) {
+                $stat = $zip->statIndex($index);
+                if (! $stat || ! static::safeEntryName($stat['name'])) {
+                    return false;
+                }
+                $size += $stat['size'];
+                if ($size > $maxSize) {
+                    return false;
+                }
+                if ($zip->getExternalAttributesIndex($index, $system, $attributes)
+                    && (($attributes >> 16) & 0170000) === 0120000) {
+                    return false;
+                }
+            }
+
+            if (! is_dir($destination) && ! mkdir($destination, $options['mask'] ?? 0755, true)) {
+                return false;
+            }
+            $root = realpath($destination);
+            for ($index = 0; $index < $zip->numFiles; $index++) {
+                $target = $root;
+                foreach (explode('/', str_replace('\\', '/', $zip->getNameIndex($index))) as $part) {
+                    $target .= '/'.$part;
+                    if (is_link($target)) {
+                        return false;
+                    }
+                }
+            }
+
+            return $zip->extractTo($destination);
+        } finally {
+            $zip->close();
+        }
+    }
+
+    protected static function safeEntryName(string $name): bool
+    {
+        $name = str_replace('\\', '/', $name);
+
+        return $name !== '' && ! str_contains($name, "\0")
+            && ! preg_match('/^(?:\/|[A-Za-z]:)/', $name)
+            && ! in_array('..', explode('/', $name), true);
     }
 
     /**

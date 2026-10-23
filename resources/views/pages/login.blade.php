@@ -64,7 +64,7 @@
                     <fieldset class="form-label-group form-group position-relative has-icon-left">
                         <input
                                 minlength="5"
-                                maxlength="20"
+                                maxlength="4096"
                                 id="password"
                                 type="password"
                                 class="form-control {{ $errors->has('password') ? 'is-invalid' : '' }}"

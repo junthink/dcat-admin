@@ -4,9 +4,12 @@ namespace Dcat\Admin\Http\Actions\Extensions;
 
 use Dcat\Admin\Admin;
 use Dcat\Admin\Grid\RowAction;
+use Dcat\Admin\Traits\RequiresAdministrator;
 
 class Enable extends RowAction
 {
+    use RequiresAdministrator;
+
     public function title()
     {
         return sprintf('<b>%s</b>', trans('admin.enable'));

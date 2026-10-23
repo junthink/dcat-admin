@@ -8,7 +8,6 @@ use Dcat\Admin\Exception\RuntimeException;
 use Dcat\Admin\Form;
 use Dcat\Admin\Grid;
 use Dcat\Admin\Show;
-use Dcat\Laravel\Database\SoftDeletes as DcatSoftDeletes;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations;
@@ -86,7 +85,7 @@ class EloquentRepository extends Repository implements TreeRepository
 
         $this->setIsSoftDeletes(
             in_array(SoftDeletes::class, $traits, true)
-            || in_array(DcatSoftDeletes::class, $traits, true)
+            || in_array('Dcat\\Laravel\\Database\\SoftDeletes', $traits, true)
         );
     }
 
@@ -234,18 +233,8 @@ class EloquentRepository extends Repository implements TreeRepository
      */
     protected function setOrderBy(Grid\Model $model, $column, $type, $cast)
     {
-        $isJsonColumn = Str::contains($column, '->');
-
-        if ($isJsonColumn) {
-            $explodedCols = explode('->', $column);
-            // json字段排序
-            $col = $this->wrapMySqlColumn(array_shift($explodedCols));
-            $parts = implode('.', $explodedCols);
-            $column = "JSON_UNQUOTE(JSON_EXTRACT({$col}, '$.{$parts}'))";
-        }
-
         if (! empty($cast)) {
-            $column = $this->wrapMySqlColumn($column);
+            $column = $this->model()->getConnection()->getQueryGrammar()->wrap($column);
 
             $model->addQuery(
                 'orderByRaw',
@@ -255,11 +244,7 @@ class EloquentRepository extends Repository implements TreeRepository
             return;
         }
 
-        if ($isJsonColumn) {
-            $model->addQuery('orderByRaw', ["{$column} {$type}"]);
-        } else {
-            $model->addQuery('orderBy', [$column, $type]);
-        }
+        $model->addQuery('orderBy', [$column, $type]);
     }
 
     /**
@@ -627,7 +612,7 @@ class EloquentRepository extends Repository implements TreeRepository
     /**
      * 获取父级ID字段名称.
      *
-     * @return string
+     * @return string|null
      */
     public function getParentColumn()
     {
@@ -641,7 +626,7 @@ class EloquentRepository extends Repository implements TreeRepository
     /**
      * 获取标题字段名称.
      *
-     * @return string
+     * @return string|null
      */
     public function getTitleColumn()
     {
@@ -655,7 +640,7 @@ class EloquentRepository extends Repository implements TreeRepository
     /**
      * 获取排序字段名称.
      *
-     * @return string
+     * @return string|null
      */
     public function getOrderColumn()
     {
@@ -749,7 +734,7 @@ class EloquentRepository extends Repository implements TreeRepository
      */
     public static function with($relations = [])
     {
-        return (new static())->setRelations($relations);
+        return (new static())->setRelations($relations); // @phpstan-ignore new.static (Variadic factory callers supply the concrete subclass constructor arguments.)
     }
 
     /**

@@ -36,11 +36,12 @@ class Editor extends Field
         'min_height' => 400,
         'save_enablewhendirty' => true,
         'convert_urls' => false,
+        'license_key' => 'gpl',
     ];
 
     protected $disk;
 
-    protected $imageUploadDirectory = 'tinymce/images';
+    protected $imageUploadDirectory;
 
     /**
      * 设置文件上传存储配置.
@@ -107,6 +108,7 @@ class Editor extends Field
     protected function formatOptions()
     {
         $this->options['language'] = config('app.locale');
+        $this->options['toolbar'] = str_replace(['styleselect', 'fontsizeselect'], ['styles', 'fontsize'], $this->options['toolbar']);
         $this->options['readonly'] = ! empty($this->attributes['readonly']) || ! empty($this->attributes['disabled']);
 
         if (empty($this->options['images_upload_url'])) {
@@ -135,7 +137,7 @@ class Editor extends Field
             [
                 '_token' => csrf_token(),
                 'disk'   => $this->disk,
-                'dir'    => $this->imageUploadDirectory,
+                'dir'    => $this->imageUploadDirectory ?: trim(config('admin.upload.directory.image', 'images'), '/').'/tinymce',
             ]
         );
     }

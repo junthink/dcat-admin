@@ -1,5 +1,6 @@
+import DOMPurify from 'dompurify';
 
-import Swal from '../sweetalert/sweetalert2'
+import Swal from 'sweetalert2/dist/sweetalert2.esm.all.js'
 
 let w = window;
 
@@ -14,7 +15,7 @@ export default class SweetAlert2 {
         Swal.confirm = _this.confirm.bind(_this);
 
         w.swal = w.Swal = _this.swal = Dcat.swal = Swal;
-        
+
         Dcat.confirm = Swal.confirm;
     }
 
@@ -42,13 +43,12 @@ export default class SweetAlert2 {
             showLoaderOnConfirm: true,
             confirmButtonText: lang['confirm'],
             cancelButtonText: lang['cancel'],
-            confirmButtonClass: 'btn btn-primary',
-            cancelButtonClass: 'btn btn-white ml-1',
+            customClass: {confirmButton: 'btn btn-primary', cancelButton: 'btn btn-white ml-1'},
             buttonsStyling: false,
         }, options);
 
         this.fire(title, message, 'question', options).then(function (result) {
-            if (result.value) {
+            if (result.isConfirmed) {
                 return success && success()
             }
 
@@ -59,10 +59,19 @@ export default class SweetAlert2 {
     fire(title, message, type, options) {
         options = $.extend({
             title: title,
-            type: type,
+            icon: type,
             html: message,
         }, options);
 
+        if (options.type && !options.icon) options.icon = options.type;
+        delete options.type;
+        options.customClass = options.customClass || {};
+        for (const [oldName, name] of [['confirmButtonClass', 'confirmButton'], ['cancelButtonClass', 'cancelButton']]) {
+            if (options[oldName]) options.customClass[name] = options[oldName];
+            delete options[oldName];
+        }
+        if (typeof options.title === 'string') options.title = DOMPurify.sanitize(options.title, {USE_PROFILES: {html: true}});
+        if (typeof options.html === 'string') options.html = DOMPurify.sanitize(options.html, {USE_PROFILES: {html: true}});
         return this.swal.fire(options);
     }
 }

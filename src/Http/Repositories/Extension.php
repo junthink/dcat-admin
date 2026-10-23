@@ -77,10 +77,12 @@ class Extension extends Repository
 
     public function delete(Form $form, array $deletingData)
     {
+        return false;
     }
 
     public function store(Form $form)
     {
+        return false;
     }
 
     public function deleting(Form $form): array

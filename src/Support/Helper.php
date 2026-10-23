@@ -529,6 +529,22 @@ class Helper
         return preg_match('/^[\w\-_]+\/[\w\-_]+$/', $name);
     }
 
+    public static function validateClassName($name): bool
+    {
+        if (! is_string($name) || $name === '' || strlen($name) > 512) {
+            return false;
+        }
+
+        $name = $name[0] === '\\' ? substr($name, 1) : $name;
+        foreach (explode('\\', $name) as $part) {
+            if (! preg_match('/\A[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*\z/D', $part)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Get file icon.
      *

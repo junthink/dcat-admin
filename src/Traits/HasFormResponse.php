@@ -53,7 +53,7 @@ trait HasFormResponse
      * @param  Request|null  $request
      * @return string
      */
-    protected function getCurrentUrl($default = null, Request $request = null)
+    protected function getCurrentUrl($default = null, ?Request $request = null)
     {
         if ($this->currentUrl) {
             return admin_url($this->currentUrl);
@@ -62,7 +62,7 @@ trait HasFormResponse
         /* @var Request $request */
         $request = $request ?: (empty($this->request) ? request() : $this->request);
 
-        if ($current = $request->get(static::CURRENT_URL_NAME)) {
+        if ($current = $request->get(\Dcat\Admin\Widgets\Form::CURRENT_URL_NAME)) {
             return admin_url($current);
         }
 

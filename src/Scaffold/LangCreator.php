@@ -19,7 +19,7 @@ class LangCreator
      *
      * @param  string  $controller
      * @param  string  $title
-     * @return string
+     * @return string|null
      */
     public function create(string $controller, ?string $title)
     {
@@ -50,7 +50,7 @@ class LangCreator
 
         $files = app('files');
         if ($files->put($filename, Helper::exportArrayPhp($content))) {
-            $files->chmod($filename, 0777);
+            $files->chmod($filename, 0644);
 
             return $filename;
         }

@@ -3,6 +3,8 @@
 namespace Dcat\Admin\Http\Controllers;
 
 use Exception;
+use Dcat\Admin\Traits\InteractsWithApi;
+use Dcat\Admin\Support\Helper;
 use Illuminate\Http\Request;
 
 class ValueController
@@ -38,13 +40,13 @@ class ValueController
      */
     protected function resolve(Request $request)
     {
-        if (! $key = $request->get('_key')) {
-            throw new Exception('Invalid request.');
-        }
-
-        if (! class_exists($key)) {
-            throw new Exception("Class [{$key}] does not exist.");
-        }
+        $key = $request->get('_key');
+        abort_unless(
+            Helper::validateClassName($key) && class_exists($key)
+            && in_array(InteractsWithApi::class, class_uses_recursive($key), true),
+            400,
+            'Invalid value handler.'
+        );
 
         $instance = app($key);
 

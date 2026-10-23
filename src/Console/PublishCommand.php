@@ -6,7 +6,6 @@ use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
-use League\Flysystem\Adapter\Local as LocalAdapter;
 use League\Flysystem\Filesystem as Flysystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\MountManager;
@@ -146,11 +145,9 @@ class PublishCommand extends Command
 
     protected function publishDirectory($from, $to)
     {
-        $localClass = class_exists(LocalAdapter::class) ? LocalAdapter::class : LocalFilesystemAdapter::class;
-
         $this->moveManagedFiles(new MountManager([
-            'from' => new Flysystem(new $localClass($from)),
-            'to' => new Flysystem(new $localClass($to)),
+            'from' => new Flysystem(new LocalFilesystemAdapter($from)),
+            'to' => new Flysystem(new LocalFilesystemAdapter($to)),
         ]));
 
         $this->status($from, $to, 'Directory');
@@ -158,20 +155,6 @@ class PublishCommand extends Command
 
     protected function moveManagedFiles(MountManager $manager)
     {
-        if (method_exists($manager, 'put')) {
-            foreach ($manager->listContents('from://', true) as $file) {
-                if (
-                    $file['type'] === 'file'
-                    && (! $manager->has('to://'.$file['path']) || $this->option('force'))
-                    && ! $this->isExceptPath($manager, $file['path'])
-                ) {
-                    $manager->put('to://'.$file['path'], $manager->read('from://'.$file['path']));
-                }
-            }
-
-            return;
-        }
-
         foreach ($manager->listContents('from://', true) as $file) {
             $path = Str::after($file['path'], 'from://');
 
@@ -183,7 +166,7 @@ class PublishCommand extends Command
 
     protected function isExceptPath($manager, $path)
     {
-        return $manager->has('to://'.$path) && Str::contains($path, ['/menu.php', '/global.php']);
+        return $manager->fileExists('to://'.$path) && Str::contains($path, ['/menu.php', '/global.php']);
     }
 
     protected function createParentDirectory($directory)

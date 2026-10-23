@@ -3,6 +3,7 @@
 namespace Dcat\Admin\Form\Field;
 
 use Dcat\Admin\Exception\UploadException;
+use Dcat\Admin\Support\UploadOwnership;
 use Dcat\Admin\Traits\HasUploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
@@ -23,6 +24,8 @@ trait UploadField
      * @var string
      */
     protected $directory = '';
+
+    protected $storageDisk;
 
     /**
      * File name.
@@ -210,6 +213,7 @@ trait UploadField
 
         if ($result) {
             $path = $this->getUploadPath();
+            UploadOwnership::record($this->storageDisk ?: config('admin.upload.disk'), $path);
             $url = $this->objectUrl($path);
 
             // 上传成功
@@ -222,8 +226,11 @@ trait UploadField
 
     public function remove()
     {
-        if ($this->getStorage()->exists("{$this->getDirectory()}/$this->name")) {
-            $this->getStorage()->delete("{$this->getDirectory()}/$this->name");
+        $path = "{$this->getDirectory()}/$this->name";
+        if ($this->getStorage()->exists($path)) {
+            $this->assertCanDeleteFiles($path);
+            $this->getStorage()->delete($path);
+            UploadOwnership::forget($this->storageDisk, $path);
         }
     }
 
@@ -338,7 +345,7 @@ trait UploadField
 
     /**
      * @param  UploadedFile  $file
-     * @return bool|\Illuminate\Support\MessageBag
+     * @return string|false|null
      */
     protected function getValidationErrors(UploadedFile $file)
     {
@@ -347,6 +354,17 @@ trait UploadField
         // 如果文件上传有错误，则直接返回错误信息
         if ($file->getError() !== UPLOAD_ERR_OK) {
             return $file->getErrorMessage();
+        }
+
+        // Browser accept filters do not validate uploads on the server.
+        $name = rtrim(strtolower($file->getClientOriginalName()), '. ');
+        if (preg_match('/[\x00-\x1f\x7f]/', $name) || in_array($name, ['.htaccess', '.user.ini'], true)
+            || preg_match('/(?:^|\.)(?:php[0-9]*|phtml|pht|phar|phps|html?|xhtml|shtml|svgz?|js|mjs|cjs)(?:\.|$)/i', $name)
+            || in_array($file->getMimeType(), [
+                'text/html', 'application/xhtml+xml', 'image/svg+xml', 'application/x-httpd-php',
+                'application/x-php', 'text/x-php', 'application/javascript', 'text/javascript',
+            ], true)) {
+            return 'Executable and active-content uploads are not allowed.';
         }
 
         if (! $fieldRules = $this->getRules()) {
@@ -405,24 +423,46 @@ trait UploadField
             return;
         }
 
-        if (method_exists($this, 'destroyThumbnail')) {
-            $this->destroyThumbnail($paths);
+        if (request()->has(static::FILE_DELETE_FLAG)) {
+            $this->assertCanDeleteFiles($paths);
         }
 
         $storage = $this->getStorage();
 
         foreach ((array) $paths as $path) {
+            $path = $this->normalizeUploadPath($path);
+            if (method_exists($this, 'destroyThumbnail')) {
+                $this->destroyThumbnail($path);
+            }
             if ($storage->exists($path)) {
                 $storage->delete($path);
-            } else {
-                $prefix = $storage->url('');
-                $path = str_replace($prefix, '', $path);
-
-                if ($storage->exists($path)) {
-                    $storage->delete($path);
-                }
             }
+            UploadOwnership::forget($this->storageDisk, $path);
         }
+    }
+
+    /** Only server-loaded record values and this user's pending uploads may be deleted. */
+    public function assertCanDeleteFiles($paths): void
+    {
+        $this->getStorage();
+        $original = array_map([$this, 'normalizeUploadPath'], array_filter((array) $this->original));
+        foreach ((array) $paths as $path) {
+            $path = $this->normalizeUploadPath($path);
+            abort_unless(in_array($path, $original, true) || UploadOwnership::owns($this->storageDisk, $path), 403, 'This file does not belong to this form or user.');
+        }
+    }
+
+    protected function normalizeUploadPath($path): string
+    {
+        abort_unless(is_string($path) && $path !== '', 422, 'Invalid upload path.');
+        $prefix = rtrim($this->getStorage()->url(''), '/').'/';
+        if (str_starts_with($path, $prefix)) {
+            $path = substr($path, strlen($prefix));
+        }
+        abort_if(preg_match('/[\x00-\x1f\x7f\\\\]/', $path) || str_starts_with($path, '/')
+            || preg_match('~(?:^|/)\.{1,2}(?:/|$)~', $path) || str_contains($path, '://'), 422, 'Invalid upload path.');
+
+        return $path;
     }
 
     /**
@@ -449,6 +489,7 @@ trait UploadField
      */
     public function disk($disk)
     {
+        $this->storageDisk = $disk;
         try {
             $this->storage = Storage::disk($disk);
         } catch (\Exception $exception) {

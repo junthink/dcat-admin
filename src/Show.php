@@ -24,6 +24,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Fluent;
 use Illuminate\Support\Traits\Macroable;
 
+/** @phpstan-consistent-constructor */
 class Show implements Renderable
 {
     use HasBuilderEvents;
@@ -333,7 +334,7 @@ class Show implements Renderable
      * @param  array  $fields
      * @return $this|Collection
      */
-    public function fields(array $fields = null)
+    public function fields(?array $fields = null)
     {
         if ($fields === null) {
             return $this->fields;

@@ -10,6 +10,7 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Support\ViewErrorBag;
 
+/** @phpstan-consistent-constructor */
 class Content implements Renderable
 {
     use HasBuilderEvents, Macroable;
@@ -60,7 +61,7 @@ class Content implements Renderable
      *
      * @param  Closure|null  $callback
      */
-    public function __construct(\Closure $callback = null)
+    public function __construct(?\Closure $callback = null)
     {
         $this->callResolving();
 

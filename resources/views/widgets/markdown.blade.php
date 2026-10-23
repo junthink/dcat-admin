@@ -1,4 +1,4 @@
-<div {!! $attributes !!}><textarea style="display:none;">{!! $content !!}</textarea></div>
+<div {!! $attributes !!}><textarea style="display:none;">{{ $content }}</textarea></div>
 
 <script first>
     var ele = window.Element;

@@ -4,9 +4,12 @@ namespace Dcat\Admin\Http\Actions\Extensions;
 
 use Dcat\Admin\Admin;
 use Dcat\Admin\Grid\RowAction;
+use Dcat\Admin\Traits\RequiresAdministrator;
 
 class Update extends RowAction
 {
+    use RequiresAdministrator;
+
     public function title()
     {
         $replace = ['version' => $this->row->extension->getLocalLatestVersion()];

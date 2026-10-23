@@ -6,11 +6,13 @@ use Dcat\Admin\Admin;
 use Dcat\Admin\Contracts\LazyRenderable;
 use Dcat\Admin\Exception\RuntimeException;
 use Dcat\Admin\Traits\LazyWidget;
+use Dcat\Admin\Traits\RequiresAdministrator;
 use Dcat\Admin\Widgets\Form;
 
 class InstallFromLocal extends Form implements LazyRenderable
 {
     use LazyWidget;
+    use RequiresAdministrator;
 
     public function handle(array $input)
     {
@@ -67,7 +69,14 @@ class InstallFromLocal extends Form implements LazyRenderable
             throw new RuntimeException(sprintf('Missing \'root\' for disk [%s].', $this->disk()));
         }
 
-        return rtrim($root, '/').'/'.$file;
+        $root = realpath($root);
+        $path = is_string($file) && $root ? realpath($root.'/'.$file) : false;
+        if (! $path || ! is_file($path) || ! str_starts_with($path, $root.DIRECTORY_SEPARATOR)
+            || strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'zip') {
+            throw new RuntimeException('Invalid extension archive path.');
+        }
+
+        return $path;
     }
 
     protected function disk()

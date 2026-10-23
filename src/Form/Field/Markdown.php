@@ -41,7 +41,7 @@ class Markdown extends Field
 
     protected $disk;
 
-    protected $imageUploadDirectory = 'markdown/images';
+    protected $imageUploadDirectory;
 
     /**
      * 开启 HTML 标签解析.
@@ -139,7 +139,7 @@ class Markdown extends Field
             [
                 '_token' => csrf_token(),
                 'disk'   => $this->disk,
-                'dir'    => $this->imageUploadDirectory,
+                'dir'    => $this->imageUploadDirectory ?: trim(config('admin.upload.directory.image', 'images'), '/').'/markdown',
             ]
         );
     }
@@ -158,6 +158,7 @@ class Markdown extends Field
             $this->options['imageUploadURL'] = $this->defaultImageUploadUrl();
         }
 
+        Admin::requireAssets('@editor-md-form');
         $this->requireLang();
 
         $this->addVariables(['options' => JavaScript::format($this->options)]);

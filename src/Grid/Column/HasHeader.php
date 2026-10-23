@@ -51,7 +51,9 @@ trait HasHeader
      */
     public function sortable($columnName = null, $cast = null)
     {
-        $sorter = new Sorter($this->grid, $columnName ?: $this->getName(), $cast);
+        $columnName = $columnName ?: $this->getName();
+        $this->grid->model()->allowSort($columnName, $cast);
+        $sorter = new Sorter($this->grid, $columnName, $cast);
 
         return $this->addHeader($sorter);
     }

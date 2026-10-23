@@ -270,6 +270,8 @@ abstract class ServiceProvider extends LaravelServiceProvider
             }
         } catch (\ReflectionException $e) {
         }
+
+        return '';
     }
 
     /**

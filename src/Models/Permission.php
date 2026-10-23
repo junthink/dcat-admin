@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Spatie\EloquentSortable\Sortable;
 
+/** @phpstan-consistent-constructor */
 class Permission extends Model implements Sortable
 {
     use HasDateTimeFormatter,
@@ -117,7 +118,7 @@ class Permission extends Model implements Sortable
      * @param  \Closure|null  $closure
      * @return array
      */
-    public static function selectOptions(\Closure $closure = null)
+    public static function selectOptions(?\Closure $closure = null)
     {
         $options = (new static())->withQuery($closure)->buildSelectOptions();
 

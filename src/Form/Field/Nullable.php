@@ -17,5 +17,6 @@ class Nullable extends Field
 
     public function render()
     {
+        return '';
     }
 }

@@ -17,8 +17,15 @@ trait WebUploader
      * @param  string|null  $mimeTypes  exp. image/*
      * @return $this
      */
-    public function accept(string $extensions, string $mimeTypes = null)
+    public function accept(string $extensions, ?string $mimeTypes = null)
     {
+        if ($extensions !== '*') {
+            $extensions = implode(',', array_map(function ($extension) {
+                return ltrim(trim($extension), '.');
+            }, explode(',', $extensions)));
+            $this->rules('mimes:'.$extensions);
+        }
+
         $this->options['accept'] = [
             'extensions' => $extensions,
         ];

@@ -77,7 +77,7 @@ trait HasFields
      */
     public function pushField(Field $field)
     {
-        $this->fields()->push($field);
+        return $this->fields()->push($field);
     }
 
     /**

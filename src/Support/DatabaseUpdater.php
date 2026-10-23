@@ -17,10 +17,12 @@ use Illuminate\Support\Facades\DB;
  */
 class DatabaseUpdater
 {
+    protected static array $requiredFiles = [];
+
     /**
      * Sets up a migration or seed file.
      */
-    public function setUp($file, \Closure $callback = null)
+    public function setUp($file, ?\Closure $callback = null)
     {
         $object = $this->resolve($file);
 
@@ -30,19 +32,17 @@ class DatabaseUpdater
 
         $this->isValidScript($object);
 
-        Model::unguard();
+        Model::unguarded(function () use ($object, $callback) {
+            return $this->transaction(function () use ($object, $callback) {
+                if ($object instanceof Migration) {
+                    $object->up();
+                } elseif ($object instanceof Seeder) {
+                    $object->run();
+                }
 
-        $this->transaction(function () use ($object, $callback) {
-            if ($object instanceof Migration) {
-                $object->up();
-            } elseif ($object instanceof Seeder) {
-                $object->run();
-            }
-
-            $callback && $callback();
+                $callback && $callback();
+            });
         });
-
-        Model::reguard();
 
         return true;
     }
@@ -50,7 +50,7 @@ class DatabaseUpdater
     /**
      * Packs down a migration or seed file.
      */
-    public function packDown($file, \Closure $callback = null)
+    public function packDown($file, ?\Closure $callback = null)
     {
         $object = $this->resolve($file);
 
@@ -60,17 +60,15 @@ class DatabaseUpdater
 
         $this->isValidScript($object);
 
-        Model::unguard();
+        Model::unguarded(function () use ($object, $callback) {
+            return $this->transaction(function () use ($object, $callback) {
+                if ($object instanceof Migration) {
+                    $object->down();
+                }
 
-        $this->transaction(function () use ($object, $callback) {
-            if ($object instanceof Migration) {
-                $object->down();
-            }
-
-            $callback && $callback();
+                $callback && $callback();
+            });
         });
-
-        Model::reguard();
 
         return true;
     }
@@ -79,7 +77,7 @@ class DatabaseUpdater
      * Resolve a migration instance from a file.
      *
      * @param  string  $file
-     * @return object
+     * @return object|null
      */
     public function resolve($file)
     {
@@ -91,7 +89,11 @@ class DatabaseUpdater
             return;
         }
 
-        require_once $file;
+        $path = realpath($file);
+        $result = static::$requiredFiles[$path] ??= require_once $path;
+        if ($result instanceof Migration || $result instanceof Seeder) {
+            return clone $result;
+        }
 
         if ($class = $this->getClassFromFile($file)) {
             return new $class;

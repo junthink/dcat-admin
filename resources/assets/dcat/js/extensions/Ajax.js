@@ -107,9 +107,9 @@ export default class Ajax {
     }
 
     // 处理接口返回数据
-    handleJsonResponse(response, options) {
+    handleJsonResponse(response, options = {}) {
         let Dcat = this.dcat,
-            data = response.data;
+            data = response && typeof response.data === 'object' && response.data ? response.data : {};
 
         if (! response) {
             return;
@@ -140,9 +140,8 @@ export default class Ajax {
                     }, 1000);
                     break;
                 case 'script':
-                    (function () {
-                        eval(then.value);
-                    })();
+                    // This API intentionally runs trusted application-authored response scripts.
+                    $.globalEval(then.value);
                     break;
             }
         };
@@ -152,7 +151,7 @@ export default class Ajax {
                 // 处理api返回的HTML代码
                 options.html(options.target, response.html, response);
             } else {
-                $(target).html(response.html);
+                $(options.target).html(response.html);
             }
         }
 

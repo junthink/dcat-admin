@@ -1,6 +1,6 @@
 {
-    "name": "dcat/laravel-admin",
-    "description": "dcat admin",
+    "name": "junthink/dcat-admin",
+    "description": "Maintained Dcat Admin fork for Laravel 13",
     "type": "library",
     "keywords": [
         "dcat",
@@ -10,27 +10,44 @@
         "form",
         "laravel admin"
     ],
-    "homepage": "https://github.com/jqhph/dcat-admin",
+    "homepage": "https://github.com/junthink/dcat-admin",
+    "support": {
+        "issues": "https://github.com/junthink/dcat-admin/issues",
+        "source": "https://github.com/junthink/dcat-admin"
+    },
+    "conflict": {
+        "dcat/laravel-admin": "*",
+        "intervention/image": "<4.4"
+    },
     "license": "MIT",
     "authors": [
         {
             "name": "jqh",
             "email": "841324345@qq.com"
+        },
+        {
+            "name": "junthink",
+            "homepage": "https://github.com/junthink",
+            "role": "Maintainer"
         }
     ],
     "require": {
-        "php": ">=7.1.0",
-        "laravel/framework": "~5.5|~6.0|~7.0|~8.0|~9.0|~10.0|~11.0|~12.0",
-        "spatie/eloquent-sortable": "3.*|4.*",
-        "doctrine/dbal": "^2.6|^3.0|^4.0",
-        "dcat/easy-excel": "*"
+        "php": "^8.3",
+        "ext-fileinfo": "*",
+        "ext-zip": "*",
+        "laravel/framework": "^13.0",
+        "spatie/eloquent-sortable": "^5.0.1",
+        "dcat/easy-excel": "^1.1"
     },
     "require-dev": {
-        "laravel/dusk": "~5.9|~6|~7.0|~8.0",
-        "phpstan/phpstan": "^0.12.0|~1.0",
-        "phpunit/phpunit": "^7.5|~9|~10|~11",
+        "laravel/dusk": "^8.7.2",
+        "orchestra/testbench": "^11.0",
+        "nikic/php-parser": "^5.0",
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^12.5.8",
         "fakerphp/faker": "^1.23",
-        "mockery/mockery": "^1.6"
+        "mockery/mockery": "^1.6",
+        "intervention/image": "^4.4"
     },
     "autoload": {
         "psr-4": {
@@ -42,11 +59,11 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Dcat\\Admin\\Tests\\": "tests/"
+            "Dcat\\Admin\\Tests\\": "tests/Integration/"
         }
     },
     "scripts": {
-        "phpstan": "vendor/bin/phpstan analyse",
+        "phpstan": "vendor/bin/phpstan analyse --configuration=phpstan.neon --no-progress",
         "test": "vendor/bin/phpunit"
     },
     "extra": {
@@ -55,5 +72,26 @@
                 "Dcat\\Admin\\AdminServiceProvider"
             ]
         }
+    },
+    "suggest": {
+        "intervention/image": "^4.4 for image transformations and thumbnails (GD or Imagick required)"
+    },
+    "archive": {
+        "exclude": [
+            "/.env.testing",
+            "/tests",
+            "/.github",
+            "/phpunit.xml",
+            "/phpunit.dusk.xml",
+            "/.gitleaks.toml",
+            "/phpstan.neon",
+            "/.firecrawl",
+            "/vendor",
+            "/node_modules",
+            "/.git",
+            "/laravel-tests",
+            "/.phpunit.cache",
+            "/resources/pre-dist"
+        ]
     }
 }

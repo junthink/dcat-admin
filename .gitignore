@@ -1,12 +1,14 @@
 /vendor/
-composer.lock
 .idea
 .php_cs.cache
 /node_modules
-package-lock.json
 mix-manifest.json
 /images/
-pre-dist
+/resources/pre-dist/
 /laravel-tests
 *.bak.*
 .DS_Store
+.phpunit.cache/
+.phpunit.result.cache
+/tests/.browser-runtime/
+/tests/.browser-results/

@@ -53,6 +53,8 @@ class Model
      */
     protected $sort;
 
+    protected $allowedSorts = [];
+
     /**
      * @var Collection
      */
@@ -211,7 +213,7 @@ class Model
      * @param  Collection|array  $data
      * @return LengthAwarePaginator|Paginator
      */
-    public function makePaginator($total, $data, string $url = null)
+    public function makePaginator($total, $data, ?string $url = null)
     {
         if ($this->simple) {
             $paginator = new Paginator($data, $this->getPerPage(), $this->getCurrentPage());
@@ -589,11 +591,39 @@ class Model
             $this->sort = $this->request->get($this->getSortName());
         }
 
+        abort_unless($this->sort === null || is_array($this->sort), 400, 'Invalid grid sort.');
         if (empty($this->sort['column']) || empty($this->sort['type'])) {
             return [null, null, null];
         }
 
-        return [$this->sort['column'], $this->sort['type'], $this->sort['cast'] ?? null];
+        $column = $this->sort['column'];
+        $type = $this->sort['type'];
+        $cast = $this->sort['cast'] ?? null;
+        abort_unless(
+            is_string($column) && preg_match('/\A[\pL\pN_]+(?:(?:\.|->)[\pL\pN_]+)*\z/uD', $column)
+            && is_string($type) && in_array(strtolower($type), ['asc', 'desc'], true),
+            400,
+            'Invalid grid sort.'
+        );
+        if ($cast !== null) {
+            abort_unless(
+                is_string($cast)
+                && preg_match('/\A(?:(?:BINARY|CHAR|DECIMAL)(?:\([0-9]{1,3}(?:,\s*[0-9]{1,3})?\))?|DATE|DATETIME|TIME|JSON|SIGNED(?: INTEGER)?|UNSIGNED(?: INTEGER)?|FLOAT|DOUBLE|REAL)\z/iD', $cast),
+                400,
+                'Invalid grid sort cast.'
+            );
+        }
+
+        abort_unless(array_key_exists($column, $this->allowedSorts), 400, 'Sorting is not enabled for this column.');
+        $configuredCast = $this->allowedSorts[$column];
+        abort_unless($cast === null || $cast === $configuredCast, 400, 'Invalid grid sort cast.');
+
+        return [$column, strtolower($type), $configuredCast];
+    }
+
+    public function allowSort(string $column, ?string $cast = null): void
+    {
+        $this->allowedSorts[$column] = $cast;
     }
 
     /**
@@ -727,7 +757,6 @@ class Model
     public function reset()
     {
         $this->data = null;
-        $this->model = null;
         $this->initQueries();
     }
 }

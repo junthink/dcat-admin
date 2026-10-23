@@ -33,7 +33,11 @@ class Captcha extends Text
 
     public function render()
     {
-        $this->addVariables(['captchaSrc' => captcha_src()]);
+        if (! function_exists('captcha_src')) {
+            throw new AdminException('The captcha helper is unavailable. Install and register [mews/captcha].');
+        }
+        $helper = 'captcha_src';
+        $this->addVariables(['captchaSrc' => $helper()]);
 
         return parent::render();
     }

@@ -3,6 +3,7 @@
 namespace Dcat\Admin\Models;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class AdminTablesSeeder extends Seeder
 {
@@ -18,8 +19,8 @@ class AdminTablesSeeder extends Seeder
         // create a user.
         Administrator::truncate();
         Administrator::create([
-            'username'   => 'admin',
-            'password'   => bcrypt('admin'),
+            'username'   => config('admin.auth.initial_username', 'admin'),
+            'password'   => bcrypt(config('admin.auth.initial_password') ?: Str::random(32)),
             'name'       => 'Administrator',
             'created_at' => $createdAt,
         ]);

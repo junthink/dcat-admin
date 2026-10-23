@@ -13,6 +13,8 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -55,17 +57,32 @@ class AuthController extends Controller
 
         /** @var \Illuminate\Validation\Validator $validator */
         $validator = Validator::make($credentials, [
-            $this->username()   => 'required',
-            'password'          => 'required',
+            $this->username()   => 'required|string|max:120',
+            'password'          => 'required|string|max:4096',
         ]);
 
         if ($validator->fails()) {
             return $this->validationErrorsResponse($validator);
         }
 
+        $key = 'dcat-login:'.hash('sha256', Admin::app()->getName().'|'.Str::lower($credentials[$this->username()]).'|'.$request->ip());
+        $attempts = max(1, (int) config('admin.auth.throttle.max_attempts', 5));
+        if (RateLimiter::tooManyAttempts($key, $attempts)) {
+            $seconds = RateLimiter::availableIn($key);
+
+            return response()->json([
+                'status' => false,
+                'message' => trans('auth.throttle', ['seconds' => $seconds, 'minutes' => (int) ceil($seconds / 60)]),
+            ], 429, ['Retry-After' => $seconds]);
+        }
+
         if ($this->guard()->attempt($credentials, $remember)) {
+            RateLimiter::clear($key);
+
             return $this->sendLoginResponse($request);
         }
+
+        RateLimiter::hit($key, max(1, (int) config('admin.auth.throttle.decay_seconds', 60)));
 
         return $this->validationErrorsResponse([
             $this->username() => $this->getFailedLoginMessage(),
@@ -82,6 +99,7 @@ class AuthController extends Controller
         $this->guard()->logout();
 
         $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         $path = admin_url('auth/login');
         if ($request->pjax()) {
@@ -179,6 +197,7 @@ class AuthController extends Controller
                 ->minLength(5)
                 ->maxLength(20)
                 ->customFormat(function ($v) {
+                    /** @var \Illuminate\Support\Fluent $this */
                     if ($v == $this->password) {
                         return;
                     }

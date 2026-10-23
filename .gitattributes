@@ -1,2 +1,22 @@
 resources/* linguist-vendored
 *.js linguist-language=php
+
+/.env.testing export-ignore
+/tests export-ignore
+/.github export-ignore
+/phpunit.xml export-ignore
+/phpunit.dusk.xml export-ignore
+/.gitleaks.toml export-ignore
+/phpstan.neon export-ignore
+/.firecrawl export-ignore
+
+# Preserve upstream formatting in third-party files and generated assets.
+resources/assets/dcat/plugins/** -whitespace
+resources/assets/licenses/** -whitespace
+resources/dist/** -whitespace
+
+# Existing Blade templates use CRLF.
+resources/views/** whitespace=cr-at-eol
+
+# The upstream Bootstrap entrypoint uses CRLF.
+resources/assets/sass/bootstrap.scss whitespace=cr-at-eol

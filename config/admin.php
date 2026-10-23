@@ -134,6 +134,15 @@ return [
 
         'guard' => 'admin',
 
+        // New installations generate a random password when none is supplied.
+        'initial_username' => env('ADMIN_INITIAL_USERNAME', 'admin'),
+        'initial_password' => env('ADMIN_INITIAL_PASSWORD'),
+
+        'throttle' => [
+            'max_attempts' => 5,
+            'decay_seconds' => 60,
+        ],
+
         'guards' => [
             'admin' => [
                 'driver'   => 'session',
@@ -269,6 +278,21 @@ return [
             'image' => 'images',
             'file'  => 'files',
         ],
+
+        // Editor images use the upload disk and image directory above by default.
+        // Optional editor.disks / editor.directories allow additional trusted targets.
+        'editor' => [
+            'max_size' => 10240, // KiB
+        ],
+        'max_chunks' => 1000,
+        'chunk_size' => 10485760, // bytes
+        'max_chunked_size' => 104857600, // bytes per upload
+        'chunk_ttl' => 3600, // seconds; also cleaned by admin:uploads-prune
+        'max_pending_uploads' => 10, // per user
+        'owner_temporary_quota' => 268435456, // bytes, includes merge workspace
+        'temporary_quota' => 1073741824, // bytes across this storage volume
+        'registry_store' => null, // use a shared persistent cache on multiple workers
+        'ownership_ttl' => 86400, // pending upload deletion claims, seconds
 
     ],
 

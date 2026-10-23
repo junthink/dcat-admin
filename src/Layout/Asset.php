@@ -134,6 +134,7 @@ class Asset
         ],
         '@editor-md' => [
             'js' => [
+                '@admin/dcat/plugins/editor-md/lib/katex/katex.min.js',
                 '@admin/dcat/plugins/editor-md/lib/raphael.min.js',
                 '@admin/dcat/plugins/editor-md/lib/marked.min.js',
                 '@admin/dcat/plugins/editor-md/lib/prettify.min.js',
@@ -144,16 +145,19 @@ class Asset
                 '@admin/dcat/plugins/editor-md/editormd.min.js',
             ],
             'css' => [
+                '@admin/dcat/plugins/editor-md/lib/katex/katex.min.css',
                 '@admin/dcat/plugins/editor-md/css/editormd.preview.min.css',
                 '@admin/dcat/extra/markdown.css',
             ],
         ],
         '@editor-md-form' => [
             'js' => [
+                '@admin/dcat/plugins/editor-md/lib/katex/katex.min.js',
                 '@admin/dcat/plugins/editor-md/lib/raphael.min.js',
                 '@admin/dcat/plugins/editor-md/editormd.min.js',
             ],
             'css' => [
+                '@admin/dcat/plugins/editor-md/lib/katex/katex.min.css',
                 '@admin/dcat/plugins/editor-md/css/editormd.min.css',
             ],
         ],

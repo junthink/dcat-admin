@@ -14,6 +14,7 @@ use Spatie\EloquentSortable\Sortable;
  * @property int $id
  *
  * @method where($parent_id, $id)
+ * @phpstan-consistent-constructor
  */
 class Menu extends Model implements Sortable
 {
@@ -94,9 +95,46 @@ class Menu extends Model implements Sortable
             return $this->fetchAll();
         }
 
-        return $this->remember(function () {
-            return $this->fetchAll();
+        $nodes = $this->remember(function () {
+            return $this->fetchAll()->map(function ($node) {
+                $data = ['attributes' => $node->getAttributes(), 'relations' => []];
+                foreach (['roles', 'permissions'] as $relation) {
+                    if ($node->relationLoaded($relation)) {
+                        $data['relations'][$relation] = $node->getRelation($relation)->map(function ($related) {
+                            return [
+                                'attributes' => $related->getAttributes(),
+                                'pivot' => $related->relationLoaded('pivot') ? $related->getRelation('pivot')->getAttributes() : null,
+                            ];
+                        })->all();
+                    }
+                }
+
+                return $data;
+            })->all();
         });
+
+        // Laravel 13 can disallow PHP object deserialization in cache stores.
+        return $this->newCollection(array_map(function (array $data) {
+            $node = $this->newFromBuilder($data['attributes']);
+            foreach (['roles', 'permissions'] as $name) {
+                if (! array_key_exists($name, $data['relations'])) {
+                    continue;
+                }
+                $relation = $node->{$name}();
+                $relatedModel = $relation->getRelated();
+                $models = array_map(function (array $row) use ($relation, $relatedModel) {
+                    $model = $relatedModel->newFromBuilder($row['attributes']);
+                    if ($row['pivot'] !== null) {
+                        $model->setRelation('pivot', $relation->newExistingPivot($row['pivot']));
+                    }
+
+                    return $model;
+                }, $data['relations'][$name]);
+                $node->setRelation($name, $relatedModel->newCollection($models));
+            }
+
+            return $node;
+        }, $nodes));
     }
 
     /**

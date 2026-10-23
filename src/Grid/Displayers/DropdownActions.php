@@ -81,17 +81,21 @@ class DropdownActions extends Actions
 
     protected function getViewLabel()
     {
+        return '';
     }
 
     protected function getEditLabel()
     {
+        return '';
     }
 
     protected function getQuickEditLabel()
     {
+        return '';
     }
 
     protected function getDeleteLabel()
     {
+        return '';
     }
 }

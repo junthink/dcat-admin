@@ -64,7 +64,7 @@ abstract class Widget implements Renderable
      */
     public static function make(...$params)
     {
-        return new static(...$params);
+        return new static(...$params); // @phpstan-ignore new.static (Variadic factory callers supply the concrete subclass constructor arguments.)
     }
 
     /**

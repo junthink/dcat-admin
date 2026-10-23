@@ -4,6 +4,7 @@ namespace Dcat\Admin\Console;
 
 use Dcat\Admin\Models\AdminTablesSeeder;
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 
 class InstallCommand extends Command
 {
@@ -54,7 +55,11 @@ class InstallCommand extends Command
         $userModel = config('admin.database.users_model');
 
         if ($userModel::count() == 0) {
+            $password = config('admin.auth.initial_password') ?: Str::random(32);
+            config(['admin.auth.initial_password' => $password]);
             $this->call('db:seed', ['--class' => AdminTablesSeeder::class]);
+            $this->line('Administrator username: '.config('admin.auth.initial_username', 'admin'));
+            $this->line('Administrator initial password: '.$password);
         }
     }
 
