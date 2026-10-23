@@ -30,11 +30,10 @@ DB_USERNAME=your_username
 DB_PASSWORD=your_password
 ```
 
-当前尚未发布到 Packagist，可先通过 VCS 安装开发版本：
+通过 Composer 安装：
 
 ```bash
-composer config repositories.dcat-admin vcs https://github.com/junthink/dcat-admin.git
-composer require junthink/dcat-admin:2.0.x-dev --with-all-dependencies
+composer require junthink/dcat-admin:^3.0 --with-all-dependencies
 php artisan admin:publish
 php artisan admin:install
 php artisan serve
