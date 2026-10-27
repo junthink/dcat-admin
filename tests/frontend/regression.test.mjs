@@ -200,6 +200,35 @@ test('date picker, select, notifications and upgraded confirmation dialog remain
     assert.equal(await page.locator('#toast-container [onerror]').count(), 0);
 });
 
+test('confirmation dialogs stay above quick-edit forms and remain clickable in every theme', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    for (const theme of ['default', 'blue', 'blue-light', 'green']) {
+        await page.goto(`${base}/admin/auth/users?theme=${theme}`);
+        await page.locator('.grid-dropdown-actions [data-toggle=dropdown]').first().click();
+        await page.locator('.quick-edit').first().click();
+        await page.locator('.layui-layer-page form').waitFor();
+        await page.evaluate(() => Dcat.confirm('Quick edit confirmation', 'Continue?', () => {
+            window.__quickEditConfirmed = true;
+        }, () => {
+            window.__quickEditCancelled = true;
+        }));
+        const levels = await page.evaluate(() => ({
+            editor: Number(getComputedStyle(document.querySelector('.layui-layer-page')).zIndex),
+            confirmation: Number(getComputedStyle(document.querySelector('.swal2-container')).zIndex),
+        }));
+        assert.ok(levels.confirmation > levels.editor, `${theme}: confirmation must stay above quick edit`);
+        await page.locator('.swal2-cancel').click();
+        await page.waitForFunction(() => window.__quickEditCancelled === true);
+        assert.equal(await page.locator('.layui-layer-page form').isVisible(), true, theme);
+        await page.evaluate(() => Dcat.confirm('Quick edit confirmation', 'Continue?', () => {
+            window.__quickEditConfirmed = true;
+        }));
+        await page.locator('.swal2-confirm').click();
+        await page.waitForFunction(() => window.__quickEditConfirmed === true);
+    }
+});
+
 test('all bundled color themes load compiled styles and retain primary button colors', async t => {
     const page = await pageForTest(t);
     await login(page);
