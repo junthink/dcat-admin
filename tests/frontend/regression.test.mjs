@@ -200,6 +200,33 @@ test('date picker, select, notifications and upgraded confirmation dialog remain
     assert.equal(await page.locator('#toast-container [onerror]').count(), 0);
 });
 
+test('toast notifications remain visible and positioned in every theme', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    for (const theme of ['default', 'blue', 'blue-light', 'green']) {
+        await page.goto(`${base}/admin/auth/users?theme=${theme}`);
+        for (const type of ['success', 'error']) {
+            await page.evaluate(type => {
+                toastr.remove();
+                Dcat[type](`${type} notification`, null, {timeOut: 0, extendedTimeOut: 0, showDuration: 0});
+            }, type);
+            const toast = page.locator(`#toast-container > .toast-${type}`);
+            await toast.waitFor({state: 'visible'});
+            assert.equal(await toast.innerText(), `${type} notification`);
+            const styles = await toast.evaluate(element => ({
+                opacity: Number(getComputedStyle(element).opacity),
+                position: getComputedStyle(element.parentElement).position,
+                bounds: element.getBoundingClientRect().toJSON(),
+                viewportWidth: window.innerWidth,
+            }));
+            assert.ok(styles.opacity > 0, `${theme}: ${type} toast must have visible opacity`);
+            assert.equal(styles.position, 'fixed', `${theme}: ${type} toast container must stay fixed`);
+            assert.ok(styles.bounds.top >= 0 && styles.bounds.left >= 0 && styles.bounds.right <= styles.viewportWidth,
+                `${theme}: ${type} toast must stay inside the viewport`);
+        }
+    }
+});
+
 test('confirmation dialogs stay above quick-edit forms and remain clickable in every theme', async t => {
     const page = await pageForTest(t);
     await login(page);
