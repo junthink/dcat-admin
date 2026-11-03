@@ -1,7 +1,3 @@
-<style>
-    .popover{z-index:29891015}
-</style>
-
 <div class="{{$viewClass['form-group']}}">
     <div  class="{{$viewClass['label']}} control-label">
         <span>{!! $label !!}</span>

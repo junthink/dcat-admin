@@ -2,6 +2,108 @@
   box-shadow: 0 0 2px 0 rgba($primary, 0.5) !important;
 }
 
+.dcat-tabs-nav {
+  position: relative;
+
+  &.dcat-tabs-searchable {
+    padding-right: 42px;
+  }
+
+  .dcat-tab-search {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+    list-style: none;
+  }
+
+  .dcat-tab-search-toggle {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+    color: inherit;
+    background: transparent;
+    box-shadow: none;
+
+    &:hover, &:focus-visible {
+      color: $primary;
+      background: rgba($primary, .08);
+    }
+  }
+}
+
+.dcat-tab-search-panel {
+  z-index: $zindex-popover;
+  width: 248px;
+  max-width: calc(100vw - 24px);
+  padding: 8px;
+  margin: 0;
+  border: 1px solid $divider-color;
+  box-shadow: $shadow-150;
+  text-transform: none;
+  letter-spacing: normal;
+
+  .form-control {
+    width: 100%;
+    height: 30px;
+  }
+
+  .dcat-tab-search-results {
+    max-height: 224px;
+    overflow-y: auto;
+    margin-top: 4px;
+  }
+
+  .dcat-tab-search-result {
+    padding: 6px 8px;
+    text-align: left;
+    white-space: normal;
+    font-size: .95rem;
+    border-radius: .2rem;
+  }
+
+  .dcat-tab-search-empty {
+    padding: 8px;
+    font-size: .95rem;
+  }
+}
+
+[data-dcat-tabs] [data-tab-search-panel][hidden],
+.dcat-tab-search-result[hidden],
+[data-tab-search-empty][hidden] {
+  display: none !important;
+}
+
+.nav-theme-primary, .nav-theme-success, .nav-theme-info, .nav-theme-danger {
+  .dcat-tab-search-toggle {
+    color: $white;
+
+    &:hover, &:focus-visible {
+      color: $white;
+      background: rgba($white, .12);
+    }
+  }
+}
+
+body.dark-mode .dcat-tab-search-panel {
+  border-color: $body-dark-border-color;
+
+  .dcat-tab-search-result {
+    color: $body-dark-font-color;
+
+    &:hover, &:focus {
+      background: $body-darker-color;
+    }
+
+    &.active {
+      color: $white;
+      background: $primary;
+    }
+  }
+}
+
 .nav.nav-tabs .nav-item .nav-link {
   font-size: 1rem;
   padding: 17px 14px;

@@ -24,6 +24,8 @@ import Slider from './extensions/Slider'
 import Color from './extensions/Color'
 import Validator from './extensions/Validator'
 import DarkMode from './extensions/DarkMode'
+import Overlay from './extensions/Overlay'
+import Tab from './extensions/Tab'
 
 import Menu from './bootstrappers/Menu'
 import Footer from './bootstrappers/Footer'
@@ -53,6 +55,11 @@ function extend (Dcat) {
     new Validator(Dcat);
     // 黑色主题切换
     new DarkMode(Dcat);
+    new Overlay();
+    Dcat.Tab = function (root) {
+        if (!root) return;
+        return $(root).data('dcat-tab-instance') || new Tab(root);
+    };
 
     // 加载进度条
     Dcat.NP = NProgress;

@@ -76,3 +76,34 @@ php artisan admin:publish --assets --force
 npm ci
 npm run production
 ```
+
+## 固定顺序与可搜索的 Tab
+
+`Tab` 按添加顺序显示标签，选中项不会自动移到首位。链接式详情页可用 `addLinks()` 一次传入完整顺序，并通过回调只渲染当前内容：
+
+```php
+use Dcat\Admin\Widgets\Tab;
+
+$links = [
+    'overview' => [
+        'title' => '概览',
+        'href' => request()->fullUrlWithQuery(['_t' => 'overview', 'page' => 1]),
+    ],
+    'logs' => [
+        'title' => '日志',
+        'href' => request()->fullUrlWithQuery(['_t' => 'logs', 'page' => 1]),
+    ],
+];
+$current = request('_t', 'overview');
+abort_unless(is_string($current) && isset($links[$current]), 404);
+
+$tab = Tab::make()->withCard()->searchable()->addLinks(
+    $links,
+    $current,
+    fn () => $current === 'overview' ? '概览内容' : '日志内容'
+);
+```
+
+搜索默认关闭，用 `searchable()` 开启，`searchable(false)` 关闭。开启后仅在标签栏内显示小搜索按钮，点击展开输入框和匹配结果，不增加工具栏行，也不改变标签排列。支持标题与 `addLinks()` 的键名匹配、方向键选择、Enter 跳转、Esc 关闭。
+
+调用方应先按权限过滤链接清单，并校验请求中的当前项；组件不会添加清单之外的搜索入口。原有 `add()`、`addLink()` 用法保持可用，直接按固定顺序调用即可。

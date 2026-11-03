@@ -103,7 +103,7 @@ let defaultActions = {
 
     dropdown () {
         function hide() {
-            $('.dropdown-menu').removeClass('show')
+            Dropdown.hideAll()
         }
         $document.off('click', document, hide)
         $document.on('click', hide);
@@ -111,11 +111,7 @@ let defaultActions = {
         function toggle(event) {
             var $this = $(this);
 
-            $('.dropdown-menu').each(function () {
-                if ($this.next()[0] !== this) {
-                    $(this).removeClass('show');
-                }
-            });
+            Dropdown.hideAll($this.next()[0]);
 
             $this.Dropdown('toggleSubmenu')
         }
@@ -134,6 +130,7 @@ let defaultActions = {
         let selector = '[data-toggle="dropdown"]';
 
         $document.off('click',selector).on('click', selector, toggle).on('click', selector, fix);
+        $document.off('.dcat-dropdown').on('pjax:beforeReplace.dcat-dropdown hidden.bs.modal.dcat-dropdown hidden.bs.dropdown.dcat-dropdown', hide);
     },
 };
 

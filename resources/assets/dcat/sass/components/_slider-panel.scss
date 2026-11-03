@@ -1,4 +1,5 @@
 .slider-panel {
+  --dcat-slider-width: 450px;
   padding: 0;
   background-color: $white;
   position: fixed;
@@ -11,8 +12,8 @@
   border-left: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: $menu-shadow;
 
-  width: 450px;
-  right: -450px;
+  width: min(var(--dcat-slider-width), 100vw);
+  right: calc(-1 * min(var(--dcat-slider-width), 100vw));
   z-index: 998;
 
   &.open{
@@ -22,7 +23,7 @@
   .slider-content {
     position: relative;
     height: 100%;
-    width: 450px;
+    width: 100%;
   }
 
   .slider-close{
@@ -58,11 +59,6 @@
 
 @media (max-width: 576px) {
   .slider-panel {
-    width: 410px;
-    right: -410px;
-
-    .slider-content {
-      width: 410px;
-    }
+    --dcat-slider-width: 410px;
   }
 }

@@ -4,7 +4,7 @@
   box-shadow: $shadow-100;
   max-width: 320px;
 
-  z-index: 10;
+  z-index: $zindex-popover;
   .popover-header {
     color: $white;
     border: none;

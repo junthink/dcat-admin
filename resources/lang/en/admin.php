@@ -84,6 +84,8 @@ return [
     'collapse'              => 'Collapse',
     'filter'                => 'Filter',
     'search'                => 'Search',
+    'tab_search'            => 'Search tabs',
+    'tab_no_results'        => 'No matching tabs',
     'close'                 => 'Close',
     'show'                  => 'Show',
     'entries'               => 'entries',

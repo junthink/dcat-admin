@@ -69,6 +69,24 @@ async function widgets(page) {
     await page.waitForFunction(() => window.tinymce?.get()?.[0]?.initialized && document.querySelector('.CodeMirror')?.CodeMirror && window.DOMPurify?.isSupported);
 }
 
+async function assertReceivesPointer(locator, description) {
+    const result = await locator.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+        return {hit: !!top && (element === top || element.contains(top)), covering: top?.outerHTML.slice(0, 180)};
+    });
+    assert.ok(result.hit, `${description}: covered by ${result.covering}`);
+}
+
+async function waitForLayer(page) {
+    await page.locator('.layui-layer-page form').waitFor();
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.layui-layer-page')).opacity === '1');
+}
+
+async function waitForTabs(page) {
+    await page.waitForFunction(() => !!jQuery('#linked-tabs').data('dcat-tab-instance') && !!jQuery('#local-tabs').data('dcat-tab-instance'));
+}
+
 test('long-password login, user grid search/sort, and CSRF-protected logout', async t => {
     const page = await pageForTest(t);
     await login(page);
@@ -254,6 +272,281 @@ test('confirmation dialogs stay above quick-edit forms and remain clickable in e
         await page.locator('.swal2-confirm').click();
         await page.waitForFunction(() => window.__quickEditConfirmed === true);
     }
+});
+
+test('notifications remain clickable over maximized and mobile quick-edit forms', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    for (const [theme, width] of [['default', 1280], ['blue', 1280], ['blue-light', 1280], ['green', 1280], ['default', 390]]) {
+        await page.setViewportSize({width, height: 844});
+        await page.goto(`${base}/admin/auth/users?theme=${theme}`);
+        await page.locator('.grid-dropdown-actions [data-toggle=dropdown]').first().click();
+        await page.locator('.quick-edit').first().click();
+        await waitForLayer(page);
+        if (width > 800) await page.locator('.layui-layer-max').click();
+        await page.waitForFunction(() => document.querySelector('.layui-layer-page').getBoundingClientRect().width >= innerWidth - 1);
+        await page.evaluate(() => Dcat.error('Validation error', null, {timeOut: 0, extendedTimeOut: 0, showDuration: 0, hideDuration: 0, closeButton: true}));
+        const toast = page.locator('#toast-container .toast-error');
+        await toast.waitFor();
+        await assertReceivesPointer(toast, `${theme}/${width}: notification`);
+        if (width === 390) await page.screenshot({path: `${results}/toast-mobile-overlay.png`});
+        await toast.locator('.toast-close-button').click();
+        await toast.waitFor({state: 'detached'});
+    }
+});
+
+test('rich-text dialogs accept focus and save links inside Layer and Bootstrap forms', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    for (const type of ['layer', 'modal']) {
+        await page.goto(`${base}/admin/regression/overlays`);
+        await page.locator(type === 'layer' ? '#open-layer-form' : '#open-editor-modal').click();
+        const owner = type === 'layer' ? '.layui-layer-page' : '.modal.show';
+        await page.locator(`${owner} form`).waitFor();
+        await page.waitForFunction(selector => {
+            const textarea = document.querySelector(`${selector} textarea[name=overlay_editor]`);
+            return textarea && tinymce.get(textarea.id)?.initialized && getComputedStyle(document.querySelector(selector)).opacity === '1';
+        }, owner);
+        const id = await page.locator(`${owner} textarea[name=overlay_editor]`).getAttribute('id');
+        await page.evaluate(id => {const editor = tinymce.get(id); editor.focus(); editor.execCommand('mceLink');}, id);
+        const dialog = page.locator('.tox-dialog');
+        await dialog.waitFor();
+        await assertReceivesPointer(dialog.getByRole('button', {name: 'Save', exact: true}), `${type}: editor dialog`);
+        const url = `https://example.test/${type}`;
+        const input = dialog.getByLabel('URL', {exact: true});
+        await input.fill(url);
+        assert.equal(await input.evaluate(element => document.activeElement === element), true, `${type}: URL input focus`);
+        await dialog.getByLabel('Text to display', {exact: true}).fill(`${type} link`);
+        if (type === 'layer') await page.screenshot({path: `${results}/editor-layer-dialog.png`});
+        await dialog.getByRole('button', {name: 'Save', exact: true}).click();
+        await dialog.waitFor({state: 'detached'});
+        assert.match(await page.evaluate(id => tinymce.get(id).getContent(), id), new RegExp(`https://example\\.test/${type}`));
+        if (type === 'layer') await page.locator('.layui-layer-close').click();
+    }
+});
+
+test('inline grid editors stay usable in modals across themes and dark mode', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    for (const theme of ['default', 'blue', 'blue-light', 'green']) {
+        for (const dark of [false, true]) {
+            await page.goto(`${base}/admin/regression/grid?modal=1&theme=${theme}`);
+            if (dark) await page.evaluate(() => Dcat.darkMode.display(true));
+            await page.locator('#open-grid-modal').click();
+            await page.locator('.modal.show').waitFor();
+            await page.waitForFunction(() => getComputedStyle(document.querySelector('.modal.show')).opacity === '1');
+            await page.locator('.modal.show [data-editinline=popover]').click();
+            const popover = page.locator('.popover.show');
+            await popover.waitFor();
+            await assertReceivesPointer(popover.locator('input.ie-input'), `${theme}/${dark}: inline editor`);
+            await popover.locator('input.ie-input').fill('Edited value');
+            assert.equal(await popover.locator('input.ie-input').evaluate(el => document.activeElement === el), true);
+            await popover.locator('.ie-cancel').click();
+            await popover.waitFor({state: 'detached'});
+        }
+    }
+});
+
+test('color picker remains interactive in Layer forms without a global popover override', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    await page.goto(`${base}/admin/regression/overlays?color=1`);
+    await page.locator('#open-layer-form').click();
+    await waitForLayer(page);
+    const input = page.locator('.layui-layer-page input[name=color]');
+    await input.click();
+    const palette = page.locator('.colorpicker:visible .colorpicker-saturation');
+    await palette.waitFor();
+    await assertReceivesPointer(palette, 'color picker in Layer form');
+    await palette.click({position: {x: 40, y: 40}});
+    assert.notEqual(await input.inputValue(), '#6d8be6');
+});
+
+test('scrolling grids keep row menus visible, anchored and interactive', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    await page.goto(`${base}/admin/regression/grid?scroll=1`);
+    const wrapper = page.locator('.table-scrollbar-x');
+    assert.equal(await wrapper.evaluate(el => el.scrollWidth > el.clientWidth && getComputedStyle(el).overflowX === 'auto'), true);
+    const toggle = page.locator('.grid-dropdown-actions [data-toggle=dropdown]').first();
+    await toggle.click();
+    const menu = page.locator('.grid-dropdown-actions .dropdown-menu.show');
+    await menu.waitFor();
+    const action = menu.locator('.regression-row-action');
+    await assertReceivesPointer(action, 'scrolling grid row action');
+    await page.screenshot({path: `${results}/grid-row-menu.png`});
+    const before = await menu.boundingBox();
+    await page.mouse.wheel(0, 60);
+    await page.waitForFunction(y => Math.abs(document.querySelector('.grid-dropdown-actions .dropdown-menu.show').getBoundingClientRect().y - y) > 20, before.y);
+    await assertReceivesPointer(action, 'row action after scrolling');
+    await action.click();
+    assert.equal(await page.evaluate(() => window.rowActionClicked), true);
+    await menu.waitFor({state: 'hidden'});
+    assert.equal(await wrapper.evaluate(el => getComputedStyle(el).overflowX), 'auto');
+    await toggle.click();
+    await menu.waitFor();
+    await page.evaluate(() => jQuery(document).trigger('pjax:beforeReplace'));
+    await menu.waitFor({state: 'hidden'});
+});
+
+test('side filters retain visible controls when narrow screens are resized', async t => {
+    const page = await pageForTest(t, {viewport: {width: 320, height: 844}});
+    await login(page);
+    await page.goto(`${base}/admin/regression/grid`);
+    await page.locator('.filter-button-group > button').first().click();
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.slider-panel.open')).right === '0px');
+    for (const width of [320, 390, 844]) {
+        await page.setViewportSize({width, height: 844});
+        const bounds = await page.locator('.slider-panel.open').boundingBox();
+        assert.ok(bounds.x >= -1 && bounds.x + bounds.width <= width + 1, `${width}: panel must fit`);
+        const field = await page.locator('.slider-panel.open input[name=name]').boundingBox();
+        assert.ok(field.x >= 0 && field.x + field.width <= width, `${width}: filter input must fit`);
+        const search = page.locator('.slider-panel.open button.submit');
+        const box = await search.boundingBox();
+        assert.ok(box.x >= 0 && box.x + box.width <= width, `${width}: search button must fit`);
+        await assertReceivesPointer(search, `${width}: filter search`);
+        if (width === 320) await page.screenshot({path: `${results}/filter-mobile.png`});
+    }
+    await page.setViewportSize({width: 320, height: 844});
+    await page.locator('.slider-panel.open input[name=name]').fill('Administrator');
+    await page.locator('.slider-panel.open button.submit').click();
+    await page.waitForURL(url => url.searchParams.get('name') === 'Administrator');
+});
+
+test('linked tabs keep their full order and render only the selected content', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    await page.goto(`${base}/admin/regression/tabs?_t=receive&page=7`);
+    await waitForTabs(page);
+    const links = page.locator('#linked-tabs > .dcat-tabs-nav > .nav-item > .nav-link');
+    const order = await links.allTextContents();
+    assert.equal(order[0], '活跃日历');
+    assert.equal(order[3], '收礼记录');
+    assert.equal(await page.locator('#linked-tabs .nav-link.active').innerText(), '收礼记录');
+    assert.equal(await page.locator('[data-loaded-tab]').count(), 1);
+    await links.filter({hasText: '设备信息'}).click();
+    await page.waitForURL(url => url.searchParams.get('_t') === 'device');
+    await page.locator('[data-loaded-tab=device]').waitFor();
+    assert.equal(new URL(page.url()).searchParams.get('page'), '1');
+    assert.deepEqual(await links.allTextContents(), order);
+    assert.equal(await page.locator('[data-loaded-tab]').getAttribute('data-loaded-tab'), 'device');
+    await page.goto(`${base}/admin/regression/tabs?no_search=1`);
+    assert.equal(await page.locator('#linked-tabs [data-tab-search-toggle]').count(), 0);
+});
+
+test('compact tab search supports keyboard navigation and stays scoped to its widget', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    await page.goto(`${base}/admin/regression/tabs`);
+    await waitForTabs(page);
+    const root = page.locator('#linked-tabs');
+    const nav = root.locator('.dcat-tabs-nav');
+    const height = (await nav.boundingBox()).height;
+    const order = await nav.locator('.nav-link').allTextContents();
+    const toggle = root.locator('[data-tab-search-toggle]');
+    await toggle.click();
+    const input = root.locator('[data-tab-search-input]');
+    await input.fill('DEvICE');
+    assert.equal(await root.locator('.dcat-tab-search-result:visible').count(), 1);
+    assert.equal(await root.locator('.dcat-tab-search-result:visible').innerText(), '设备信息');
+    assert.equal((await nav.boundingBox()).height, height);
+    assert.deepEqual(await nav.locator('.nav-link').allTextContents(), order);
+    assert.equal(await page.locator('[data-loaded-tab]').getAttribute('data-loaded-tab'), 'receive');
+    await input.press('ArrowDown');
+    assert.equal(await root.locator('.dcat-tab-search-result:visible').evaluate(el => document.activeElement === el), true);
+    await page.keyboard.press('Enter');
+    await page.waitForURL(url => url.searchParams.get('_t') === 'device');
+    await page.locator('[data-loaded-tab=device]').waitFor();
+    await waitForTabs(page);
+    const local = page.locator('#local-tabs');
+    await local.locator('[data-tab-search-toggle]').click();
+    await local.locator('[data-tab-search-input]').fill('Second');
+    await local.locator('[data-tab-search-input]').press('Enter');
+    await page.waitForFunction(() => location.hash === '#tab_local-second');
+    assert.equal(await local.locator('.tab-pane.active').innerText(), 'Second local content');
+    assert.equal(await root.locator('.nav-link.active').innerText(), '设备信息');
+    await local.locator('[data-tab-search-toggle]').click();
+    await local.locator('[data-tab-search-input]').press('Escape');
+    assert.equal(await local.locator('[data-tab-search-panel]').isVisible(), false);
+    assert.equal(await local.locator('[data-tab-search-toggle]').evaluate(el => document.activeElement === el), true);
+});
+
+test('tab search handles no matches, unsafe text and IME input without navigating', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    await page.goto(`${base}/admin/regression/tabs`);
+    await waitForTabs(page);
+    const root = page.locator('#linked-tabs');
+    await root.locator('[data-tab-search-toggle]').click();
+    const input = root.locator('[data-tab-search-input]');
+    await input.fill('<img src=x onerror="window.__tabSearchXss=1">');
+    assert.equal(await root.locator('.dcat-tab-search-result:visible').count(), 0);
+    assert.equal(await root.locator('[data-tab-search-empty]').isVisible(), true);
+    assert.equal(await page.evaluate(() => window.__tabSearchXss), undefined);
+    await root.evaluate(element => {
+        const form = document.createElement('form');
+        form.addEventListener('submit', event => {event.preventDefault(); window.unexpectedTabSubmit = true;});
+        element.replaceWith(form);
+        form.append(element);
+    });
+    await input.press('Enter');
+    assert.equal(await page.evaluate(() => window.unexpectedTabSubmit), undefined);
+    await input.fill('设备');
+    const url = page.url();
+    await input.evaluate(el => el.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', isComposing: true, bubbles: true})));
+    assert.equal(page.url(), url);
+    assert.equal(await root.locator('.dcat-tab-search-result:visible').count(), 1);
+    await page.locator('#local-tabs .nav-link').first().click();
+    assert.equal(await root.locator('[data-tab-search-panel]').isVisible(), false);
+});
+
+test('tab search panels fit narrow screens and all color themes in dark mode', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    for (const theme of ['default', 'blue', 'blue-light', 'green']) {
+        for (const width of [1280, 320]) {
+            await page.setViewportSize({width, height: 844});
+            await page.goto(`${base}/admin/regression/tabs?theme=${theme}`);
+            await waitForTabs(page);
+            if (width === 320) await page.evaluate(() => Dcat.darkMode.display(true));
+            const root = page.locator('#linked-tabs');
+            const height = (await root.locator('.dcat-tabs-nav').boundingBox()).height;
+            const iconFits = await root.locator('[data-tab-search-toggle]').evaluate(button => {
+                const bounds = button.getBoundingClientRect();
+                const icon = button.querySelector('i').getBoundingClientRect();
+                return icon.left >= bounds.left && icon.right <= bounds.right
+                    && Math.abs((icon.left + icon.right) / 2 - (bounds.left + bounds.right) / 2) < 1;
+            });
+            assert.ok(iconFits, `${theme}/${width}: search icon must fit and stay centered`);
+            if (theme === 'green' && width === 1280) await root.screenshot({path: `${results}/tab-search-closed.png`});
+            await root.locator('[data-tab-search-toggle]').click();
+            const input = root.locator('[data-tab-search-input]');
+            await input.fill('记录');
+            await assertReceivesPointer(input, `${theme}/${width}: search input`);
+            const bounds = await root.locator('[data-tab-search-panel]').boundingBox();
+            assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1, `${theme}/${width}: panel must fit`);
+            assert.equal((await root.locator('.dcat-tabs-nav').boundingBox()).height, height);
+            if (theme === 'green') await page.screenshot({path: `${results}/tab-search-${width}.png`});
+            await input.press('Escape');
+        }
+    }
+});
+
+test('content tabs honor hashes and searchable vertical themes without changing other widgets', async t => {
+    const page = await pageForTest(t);
+    await login(page);
+    await page.goto(`${base}/admin/regression/tabs?vertical=1#tab_local-second`);
+    await waitForTabs(page);
+    const local = page.locator('#local-tabs');
+    assert.equal(await local.locator('.tab-pane.active').innerText(), 'Second local content');
+    const toggle = local.locator('[data-tab-search-toggle]');
+    await assertReceivesPointer(toggle, 'vertical tab search');
+    await toggle.click();
+    await local.locator('[data-tab-search-input]').fill('First');
+    await local.locator('[data-tab-search-input]').press('Enter');
+    await page.waitForFunction(() => location.hash === '#tab_local-first');
+    assert.equal(await local.locator('.tab-pane.active').innerText(), 'First local content');
+    assert.equal(await page.locator('#linked-tabs .nav-link.active').innerText(), '收礼记录');
 });
 
 test('all bundled color themes load compiled styles and retain primary button colors', async t => {

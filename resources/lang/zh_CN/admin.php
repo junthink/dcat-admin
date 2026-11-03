@@ -80,6 +80,8 @@ return [
     'collapse'              => '收起',
     'filter'                => '筛选',
     'search'                => '搜索',
+    'tab_search'            => '搜索标签',
+    'tab_no_results'        => '没有匹配的标签',
     'close'                 => '关闭',
     'show'                  => '显示',
     'entries'               => '条',

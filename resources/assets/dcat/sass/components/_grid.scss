@@ -61,7 +61,7 @@
 // 过滤器滑动面板
 .right-side-filter-container .header {
   border-bottom: 1px solid $divider-color;
-  width: 100%;
+  width: calc(min(var(--dcat-slider-width, 450px), 100vw) - 20px);
   background: #fff;
   z-index: 10;
   top: 0;

@@ -38,3 +38,8 @@ $input-height: 34px;
 $content-wrapper-padding: 2.5rem;
 
 $navbar-horizontal-top: 60px;
+
+// Body-level overlays must stay above Layer's default 19891014 stack.
+$dcat-zindex-editor: 29891015 !default;
+$dcat-zindex-toast: 39891015 !default;
+$dcat-zindex-confirm: 89891015 !default;

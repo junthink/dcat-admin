@@ -1,0 +1,8 @@
+#toast-container {
+  z-index: $dcat-zindex-toast;
+}
+
+// TinyMCE loads its skin after the application stylesheet.
+.tox-tinymce-aux {
+  z-index: $dcat-zindex-editor !important;
+}

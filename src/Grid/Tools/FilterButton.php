@@ -65,11 +65,6 @@ class FilterButton extends AbstractTool
             target: '#{$id}',
         });
 
-        slider
-            .\$container
-            .find('.right-side-filter-container .header')
-            .width(slider.\$container.width() - 20);
-
         expand && setTimeout(slider.open.bind(slider), 10);
     }
 
@@ -84,15 +79,10 @@ class FilterButton extends AbstractTool
         return false
     });
 
-    $('.wrapper').on('click', '.modal', function (e) {
-        if (typeof e.cancelBubble != "undefined") {
-            e.cancelBubble = true;
-        }
-        if (typeof e.stopPropagation != "undefined") {
-            e.stopPropagation();
-        }
-    });
     $(document).on('click', '.wrapper', function (e) {
+        if ($(e.target).closest('.modal').length) {
+            return;
+        }
         if (slider && slider.close) {
             slider.close();
         }
