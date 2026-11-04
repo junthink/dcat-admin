@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'CLS 业务日志',
+    'description' => '检索应用运行日志',
+    'start' => '开始时间',
+    'end' => '结束时间（不含）',
+    'service' => '服务',
+    'level' => '日志级别',
+    'keyword' => '关键词',
+    'keyword_placeholder' => '日志内容、用户 ID 或请求 ID',
+    'all_services' => '全部服务',
+    'all_levels' => '全部级别',
+    'search' => '查询',
+    'reset' => '重置',
+    'time' => '时间',
+    'message' => '日志内容',
+    'details' => '查看原始日志',
+    'previous' => '上一页',
+    'next' => '下一页',
+    'page' => '第 :page 页',
+    'count' => '本页 :count 条，按时间倒序',
+    'empty' => '没有匹配的日志，请调整时间范围或筛选条件。',
+    'not_configured' => '日志查询尚未配置，请联系管理员。',
+    'unavailable' => '日志查询暂时不可用，请稍后重试或联系管理员。',
+    'range_too_large' => '单次查询的时间范围不能超过 :hours 小时。',
+];

@@ -50,6 +50,7 @@ class AdminServiceProvider extends ServiceProvider
         Console\ExtensionUpdateCommand::class,
         Console\UpdateCommand::class,
         Console\PruneUploadsCommand::class,
+        Console\ClsInstallCommand::class,
     ];
 
     /**
@@ -127,6 +128,7 @@ class AdminServiceProvider extends ServiceProvider
     protected function registerViews()
     {
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'admin');
+        $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'admin');
     }
 
     /**

@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'CLS 業務日誌',
+    'description' => '檢索應用程式日誌',
+    'start' => '開始時間',
+    'end' => '結束時間（不含）',
+    'service' => '服務',
+    'level' => '日誌級別',
+    'keyword' => '關鍵字',
+    'keyword_placeholder' => '日誌內容、使用者 ID 或請求 ID',
+    'all_services' => '全部服務',
+    'all_levels' => '全部級別',
+    'search' => '查詢',
+    'reset' => '重設',
+    'time' => '時間',
+    'message' => '日誌內容',
+    'details' => '查看原始日誌',
+    'previous' => '上一頁',
+    'next' => '下一頁',
+    'page' => '第 :page 頁',
+    'count' => '本頁 :count 筆，按時間倒序',
+    'empty' => '沒有符合的日誌，請調整時間範圍或篩選條件。',
+    'not_configured' => '尚未設定日誌查詢，請聯絡管理員。',
+    'unavailable' => '日誌查詢暫時無法使用，請稍後重試或聯絡管理員。',
+    'range_too_large' => '單次查詢的時間範圍不能超過 :hours 小時。',
+];

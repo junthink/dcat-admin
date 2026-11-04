@@ -31,7 +31,7 @@ class Admin
     use HasAssets;
     use HasHtml;
 
-    const VERSION = '3.0.3';
+    const VERSION = '3.1.0';
 
     const SECTION = [
         // 往 <head> 标签内输入内容
@@ -601,6 +601,10 @@ class Admin
                 $router->post('auth/logout', $authController.'@getLogout');
                 $router->get('auth/setting', $authController.'@getSetting');
                 $router->put('auth/setting', $authController.'@putSetting');
+
+                if (config('admin.cls.enabled')) {
+                    $router->get('cls-logs', [Http\Controllers\ClsLogController::class, 'index']);
+                }
             });
         }
 

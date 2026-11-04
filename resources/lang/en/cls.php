@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'title' => 'CLS business logs',
+    'description' => 'Search application logs',
+    'start' => 'Start time',
+    'end' => 'End time (exclusive)',
+    'service' => 'Service',
+    'level' => 'Log level',
+    'keyword' => 'Keyword',
+    'keyword_placeholder' => 'Message, user ID or request ID',
+    'all_services' => 'All services',
+    'all_levels' => 'All levels',
+    'search' => 'Search',
+    'reset' => 'Reset',
+    'time' => 'Time',
+    'message' => 'Message',
+    'details' => 'View raw log',
+    'previous' => 'Previous page',
+    'next' => 'Next page',
+    'page' => 'Page :page',
+    'count' => ':count logs on this page · newest first',
+    'empty' => 'No matching logs. Try another time range or fewer filters.',
+    'not_configured' => 'Log search has not been configured. Please contact an administrator.',
+    'unavailable' => 'Log search is temporarily unavailable. Try again later or contact an administrator.',
+    'range_too_large' => 'Select a time range of at most :hours hours.',
+];

@@ -45,6 +45,8 @@ php artisan serve
 
 ## 使用
 
+可选的 [CLS 业务日志](docs/cls-logs.md)支持时间、服务、日志级别和关键词筛选，默认关闭，沿用 Dcat 登录和权限。
+
 安装后，主要开发入口如下：
 
 - `config/admin.php`：后台地址、认证、数据库和主题配置。

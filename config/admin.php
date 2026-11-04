@@ -2,6 +2,24 @@
 
 return [
 
+    // Optional Tencent Cloud CLS log browser. No cloud SDK or frontend build required.
+    'cls' => [
+        'enabled' => env('CLS_ENABLED', false),
+        'region' => env('CLS_REGION', 'ap-guangzhou'),
+        'topic_id' => env('CLS_TOPIC_ID'),
+        'secret_id' => env('CLS_SECRET_ID'),
+        'secret_key' => env('CLS_SECRET_KEY'),
+        'token' => env('CLS_TOKEN'),
+        'services' => [],
+        'service_field' => '__TAG__.container_name',
+        'level_field' => 'level_name',
+        'message_field' => 'message',
+        'level_values' => [],
+        'timezone' => null,
+        'page_size' => 100,
+        'max_range_hours' => 168,
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | dcat-admin name
