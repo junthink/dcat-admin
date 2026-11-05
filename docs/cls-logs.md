@@ -35,4 +35,4 @@
 
 兼容 v3.1 单主题模式：当 `logset_id`、`logset_name` 均为空时，仍读取 `topic_id` / `CLS_TOPIC_ID`，使用 `services`、`service_field` 对同一主题内的服务做筛选，保持 Offset 翻页。日志集配置优先于这些旧配置。
 
-采用 TC3-HMAC-SHA256 签名及 `QueryString` / CQL。CLS 错误仅记录错误码、接口名和 RequestId，不向页面暴露云凭证或底层异常。API 参考：[DescribeLogsets](https://cloud.tencent.com/document/api/614/58624)、[DescribeTopics](https://cloud.tencent.com/document/api/614/56454)、[SearchLog](https://cloud.tencent.com/document/api/614/56447)。自动化测试使用模拟响应；真实检索仍需宿主项目实际凭证和索引。
+采用 TC3-HMAC-SHA256 签名及 `QueryString` / CQL。CLS 失败统一记录 `CLS log query failed` 警告，包含 `diagnostic_id`、`reason`、地域、日志集及适用的接口名、主题 ID、HTTP 状态、云错误码 `code`、脱敏后的云错误说明 `cloud_message` 和 `request_id`。网络失败记录异常类型、cURL 错误号及安全分类（如超时、DNS、TLS），缓存失败记录阶段、缓存类型和异常分类；不记录原始异常、签名请求头、完整响应或查询正文。SecretId、SecretKey、Token 和签名会脱敏。页面只显示通用错误及诊断编号，按编号或 `CLS log query failed` 检索后台日志即可定位原因。API 参考：[DescribeLogsets](https://cloud.tencent.com/document/api/614/58624)、[DescribeTopics](https://cloud.tencent.com/document/api/614/56454)、[SearchLog](https://cloud.tencent.com/document/api/614/56447)。自动化测试使用模拟响应；真实检索仍需宿主项目实际凭证和索引。

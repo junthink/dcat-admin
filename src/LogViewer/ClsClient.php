@@ -4,7 +4,6 @@ namespace Dcat\Admin\LogViewer;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class ClsClient
 {
@@ -27,22 +26,22 @@ class ClsClient
         if (! filled($logsetId)) {
             $name = config('admin.cls.logset_name');
             if (! is_string($name) || trim($name) === '') {
-                throw new ClsLogException(trans('admin::cls.not_configured'));
+                throw ClsLogException::failure('missing_logset_name', [], 'not_configured');
             }
             $matches = array_filter($this->listing('DescribeLogsets', 'Logsets', 'logsetName', $name),
                 fn ($item) => ($item['LogsetName'] ?? null) === $name);
             if (count($matches) !== 1 || ! is_string($logsetId = reset($matches)['LogsetId'] ?? null) || $logsetId === '') {
-                throw new ClsLogException(trans('admin::cls.logset_not_found'));
+                throw ClsLogException::failure('logset_name_not_unique', ['action' => 'DescribeLogsets', 'matching_logsets' => count($matches)], 'logset_not_found');
             }
         }
         if (! is_string($logsetId)) {
-            throw new ClsLogException(trans('admin::cls.not_configured'));
+            throw ClsLogException::failure('invalid_logset_id', [], 'not_configured');
         }
         $topics = [];
         foreach ($this->listing('DescribeTopics', 'Topics', 'logsetId', $logsetId) as $topic) {
             if (($topic['LogsetId'] ?? null) !== $logsetId || ! is_string($topic['TopicId'] ?? null)
                 || $topic['TopicId'] === '' || ! is_string($topic['TopicName'] ?? null)) {
-                throw new ClsLogException(trans('admin::cls.unavailable'));
+                throw ClsLogException::failure('invalid_topic_catalog', ['action' => 'DescribeTopics']);
             }
             $topics[$topic['TopicId']] = $topic['TopicName'];
         }
@@ -62,11 +61,11 @@ class ClsClient
             if (! is_array($result[$key] ?? null) || ! array_is_list($result[$key])
                 || ! is_int($result['TotalCount'] ?? null) || $result['TotalCount'] < 0
                 || (count($items) < $result['TotalCount'] && $result[$key] === [])) {
-                throw new ClsLogException(trans('admin::cls.unavailable'));
+                throw ClsLogException::failure('invalid_listing_response', ['action' => $action, 'request_id' => $result['RequestId'] ?? null]);
             }
             foreach ($result[$key] as $item) {
                 if (! is_array($item)) {
-                    throw new ClsLogException(trans('admin::cls.unavailable'));
+                    throw ClsLogException::failure('invalid_listing_item', ['action' => $action, 'request_id' => $result['RequestId'] ?? null]);
                 }
                 $items[] = $item;
             }
@@ -84,7 +83,7 @@ class ClsClient
     {
         if (! filled($topicId) || ($this->usesLogset()
             ? ! array_key_exists($topicId, $this->topics()) : $topicId !== config('admin.cls.topic_id'))) {
-            throw new ClsLogException(trans('admin::cls.not_configured'));
+            throw ClsLogException::failure('topic_not_in_configured_scope', ['action' => 'SearchLog', 'topic_id' => $topicId], 'not_configured');
         }
         // Neither raw TopicId nor Topics from a caller can widen the configured scope.
         unset($parameters['Topics']);
@@ -92,11 +91,11 @@ class ClsClient
         $result = $this->request('SearchLog', $parameters);
         if (! array_key_exists('Results', $result) || ! is_bool($result['ListOver'] ?? null)
             || ($result['Results'] !== null && (! is_array($result['Results']) || ! array_is_list($result['Results'])))) {
-            throw new ClsLogException(trans('admin::cls.unavailable'));
+            throw ClsLogException::failure('invalid_search_response', ['action' => 'SearchLog', 'topic_id' => $topicId, 'request_id' => $result['RequestId'] ?? null]);
         }
         foreach ($result['Results'] ?? [] as $log) {
             if (! is_array($log)) {
-                throw new ClsLogException(trans('admin::cls.unavailable'));
+                throw ClsLogException::failure('invalid_log_record', ['action' => 'SearchLog', 'topic_id' => $topicId, 'request_id' => $result['RequestId'] ?? null]);
             }
         }
 
@@ -105,9 +104,10 @@ class ClsClient
 
     protected function request(string $action, array $parameters): array
     {
+        $context = ['action' => $action, 'topic_id' => $parameters['TopicId'] ?? null];
         foreach (['region', 'secret_id', 'secret_key'] as $key) {
             if (! is_string(config("admin.cls.{$key}")) || trim(config("admin.cls.{$key}")) === '') {
-                throw new ClsLogException(trans('admin::cls.not_configured'));
+                throw ClsLogException::failure('missing_configuration', $context + ['missing_field' => $key], 'not_configured');
             }
         }
 
@@ -131,19 +131,17 @@ class ClsClient
                 ->withHeaders($headers)->withBody($body, 'application/json')
                 ->post('https://'.self::HOST);
         } catch (ConnectionException $exception) {
-            // HTTP exceptions can contain signed headers. Do not log the exception.
-            throw new ClsLogException(trans('admin::cls.unavailable'));
+            throw ClsLogException::failure('connection_failed', $context + ClsLogException::exceptionContext($exception));
         }
 
         $result = $response->json('Response');
         if (! $response->successful() || ! is_array($result) || isset($result['Error'])) {
-            Log::warning('CLS log query failed', [
-                'action' => $action,
+            throw ClsLogException::failure(isset($result['Error']) ? 'cloud_api_error' : 'invalid_http_response', $context + [
                 'status' => $response->status(),
                 'code' => is_array($result) ? ($result['Error']['Code'] ?? null) : null,
+                'cloud_message' => is_array($result) ? ($result['Error']['Message'] ?? null) : null,
                 'request_id' => is_array($result) ? ($result['RequestId'] ?? null) : null,
             ]);
-            throw new ClsLogException(trans('admin::cls.unavailable'));
         }
         return $result;
     }

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'diagnostic_reference' => 'Diagnostic ID: :id',
     'application' => 'Application',
     'all_applications' => 'All applications',
     'logset_not_found' => 'The configured logset could not be uniquely identified. Check its name or configure its ID.',

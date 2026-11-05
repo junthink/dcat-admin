@@ -27,7 +27,7 @@ class ClsLogPager
             try {
                 $encrypted = Cache::get('dcat:cls:'.$scope.':'.$cursor);
             } catch (\Exception $exception) {
-                throw new ClsLogException(trans('admin::cls.unavailable'));
+                throw ClsLogException::failure('pagination_cache_read_failed', ['cache_store' => config('cache.default')] + ClsLogException::exceptionContext($exception));
             }
             try {
                 $state = is_string($encrypted) ? json_decode(Crypt::decryptString($encrypted), true) : null;
@@ -35,11 +35,11 @@ class ClsLogPager
                 $state = null;
             }
             if (! is_array($state) || $state['page'] !== $page) {
-                throw new ClsLogException(trans('admin::cls.cursor_expired'));
+                throw ClsLogException::failure('pagination_cursor_expired_or_changed', [], 'cursor_expired');
             }
         } else {
             if ($page !== 1) {
-                throw new ClsLogException(trans('admin::cls.cursor_expired'));
+                throw ClsLogException::failure('pagination_cursor_missing', [], 'cursor_expired');
             }
             $state = ['page' => 1, 'previous' => '', 'streams' => []];
             foreach ($topics as $id => $name) {
@@ -61,11 +61,11 @@ class ClsLogPager
                     $stream['over'] = $result['ListOver'];
                     $stream['offset'] += count($stream['buffer']);
                     if ($stream['buffer'] === [] && ! $stream['over']) {
-                        throw new ClsLogException(trans('admin::cls.unavailable'));
+                        throw ClsLogException::failure('empty_incomplete_search_page', ['action' => 'SearchLog', 'topic_id' => $id, 'request_id' => $result['RequestId'] ?? null]);
                     }
                     foreach ($stream['buffer'] as $log) {
                         if (! is_numeric($log['Time'] ?? null) || (isset($log['TopicId']) && $log['TopicId'] !== $id)) {
-                            throw new ClsLogException(trans('admin::cls.unavailable'));
+                            throw ClsLogException::failure('invalid_search_record_scope_or_time', ['action' => 'SearchLog', 'topic_id' => $id, 'request_id' => $result['RequestId'] ?? null]);
                         }
                     }
                 }
@@ -100,10 +100,10 @@ class ClsLogPager
             try {
                 $stored = Cache::put('dcat:cls:'.$scope.':'.$next, Crypt::encryptString(json_encode($state, JSON_THROW_ON_ERROR)), $ttl);
             } catch (\Exception $exception) {
-                throw new ClsLogException(trans('admin::cls.unavailable'));
+                throw ClsLogException::failure('pagination_cache_write_failed', ['cache_store' => config('cache.default')] + ClsLogException::exceptionContext($exception));
             }
             if (! $stored) {
-                throw new ClsLogException(trans('admin::cls.unavailable'));
+                throw ClsLogException::failure('pagination_cache_write_rejected', ['cache_store' => config('cache.default')]);
             }
         }
 

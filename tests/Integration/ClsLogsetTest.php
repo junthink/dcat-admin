@@ -12,6 +12,7 @@ use DOMDocument;
 use DOMXPath;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class ClsLogsetTest extends TestCase
@@ -212,8 +213,10 @@ class ClsLogsetTest extends TestCase
     {
         $this->login();
         $this->fake();
+        Log::spy();
         Cache::shouldReceive('put')->once()->andThrow(new \RuntimeException('private cache connection'));
-        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('private cache connection')->assertDontSee('api-900');
+        $this->get('/admin/cls-logs')->assertStatus(503)->assertSee('Diagnostic ID:')->assertDontSee('private cache connection')->assertDontSee('api-900');
+        Log::shouldHaveReceived('warning')->once()->with('CLS log query failed', \Mockery::on(fn ($c) => $c['reason'] === 'pagination_cache_write_failed' && $c['cache_store'] === 'array'));
     }
 
     public function test_empty_logset_is_empty_without_a_search_request(): void

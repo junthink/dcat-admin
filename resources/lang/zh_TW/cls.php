@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'diagnostic_reference' => '診斷編號：:id',
     'application' => '應用',
     'all_applications' => '全部應用',
     'logset_not_found' => '找不到唯一匹配的日誌集，請檢查名稱或設定日誌集 ID。',

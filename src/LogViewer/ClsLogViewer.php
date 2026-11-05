@@ -95,7 +95,7 @@ class ClsLogViewer
             }
             $field = config('admin.cls.'.$name.'_field', $name === 'service' ? '__TAG__.container_name' : 'level_name');
             if (! is_string($field) || ! preg_match('/^[a-zA-Z_][a-zA-Z0-9_.-]*$/D', $field)) {
-                throw new ClsLogException(trans('admin::cls.not_configured'));
+                throw ClsLogException::failure('invalid_filter_field_configuration', ['filter' => $name], 'not_configured');
             }
             $value = $name === 'level'
                 ? (config('admin.cls.level_values', [])[$filters['level']] ?? $filters['level'])
@@ -116,7 +116,7 @@ class ClsLogViewer
             $topics = $this->services();
             if (($filters['service'] ?? '') !== '') {
                 if (! array_key_exists($filters['service'], $topics)) {
-                    throw new ClsLogException(trans('admin::cls.not_configured'));
+                    throw ClsLogException::failure('application_not_in_configured_scope', [], 'not_configured');
                 }
                 $topics = [$filters['service'] => $topics[$filters['service']]];
             }

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'diagnostic_reference' => '诊断编号：:id',
     'application' => '应用',
     'all_applications' => '全部应用',
     'logset_not_found' => '未找到唯一匹配的日志集，请检查名称或配置日志集 ID。',
