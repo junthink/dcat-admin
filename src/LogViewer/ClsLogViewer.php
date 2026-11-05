@@ -17,9 +17,17 @@ class ClsLogViewer
 
     public function services(): array
     {
+        if ($this->usesLogset()) {
+            return $this->client->topics();
+        }
         $services = (array) config('admin.cls.services', []);
 
         return array_is_list($services) ? array_combine($services, $services) : $services;
+    }
+
+    public function usesLogset(): bool
+    {
+        return $this->client->usesLogset();
     }
 
     public function timezone(): string
@@ -34,7 +42,7 @@ class ClsLogViewer
         return [
             'start' => $end->copy()->subHour()->format('Y-m-d\TH:i:s'),
             'end' => $end->format('Y-m-d\TH:i:s'),
-            'service' => '', 'level' => '', 'keyword' => '', 'page' => 1,
+            'service' => '', 'level' => '', 'keyword' => '', 'page' => 1, 'cursor' => '',
         ];
     }
 
@@ -48,9 +56,10 @@ class ClsLogViewer
             'level' => ['nullable', 'string', Rule::in(self::LEVELS)],
             'keyword' => ['nullable', 'string', 'max:500', 'not_regex:/[\x00-\x1f\x7f]/u'],
             'page' => ['required', 'integer', 'min:1', 'max:10000'],
+            'cursor' => ['nullable', 'string', 'size:64', 'regex:/^[a-zA-Z0-9]+$/D'],
         ], [], [
             'start' => trans('admin::cls.start'), 'end' => trans('admin::cls.end'),
-            'service' => trans('admin::cls.service'), 'level' => trans('admin::cls.level'),
+            'service' => trans('admin::cls.'.($this->usesLogset() ? 'application' : 'service')), 'level' => trans('admin::cls.level'),
             'keyword' => trans('admin::cls.keyword'),
         ]);
         $validator->after(function ($validator) use ($filters) {
@@ -66,7 +75,7 @@ class ClsLogViewer
         });
 
         $validated = $validator->validate();
-        foreach (['service', 'level', 'keyword'] as $key) {
+        foreach (['service', 'level', 'keyword', 'cursor'] as $key) {
             $validated[$key] = $validated[$key] ?? '';
         }
         $validated['page'] = (int) $validated['page'];
@@ -78,6 +87,9 @@ class ClsLogViewer
     {
         $conditions = [];
         foreach (['service', 'level'] as $name) {
+            if ($name === 'service' && $this->usesLogset()) {
+                continue;
+            }
             if (($filters[$name] ?? '') === '') {
                 continue;
             }
@@ -94,13 +106,28 @@ class ClsLogViewer
             $conditions[] = $this->quote($filters['keyword']);
         }
         $size = max(1, min(1000, (int) config('admin.cls.page_size', 100)));
-        $result = $this->client->search([
+        $parameters = [
             'From' => Carbon::parse($filters['start'], $this->timezone())->getTimestampMs(),
             'To' => Carbon::parse($filters['end'], $this->timezone())->getTimestampMs(),
             'QueryString' => $conditions ? implode(' AND ', $conditions) : '*',
             'QuerySyntax' => 1, 'Sort' => 'desc', 'Limit' => $size,
-            'Offset' => ((int) $filters['page'] - 1) * $size,
-        ]);
+        ];
+        if ($this->usesLogset()) {
+            $topics = $this->services();
+            if (($filters['service'] ?? '') !== '') {
+                if (! array_key_exists($filters['service'], $topics)) {
+                    throw new ClsLogException(trans('admin::cls.not_configured'));
+                }
+                $topics = [$filters['service'] => $topics[$filters['service']]];
+            }
+            $result = (new ClsLogPager($this->client))->search($parameters, $topics, $filters);
+            $result['logs'] = array_map(fn (array $log) => $this->normalize($log), $result['results']);
+            unset($result['results']);
+
+            return $result;
+        }
+        $parameters['Offset'] = ((int) $filters['page'] - 1) * $size;
+        $result = $this->client->search($parameters);
 
         return [
             'logs' => array_map(fn (array $log) => $this->normalize($log), $result['Results'] ?? []),
@@ -120,6 +147,9 @@ class ClsLogViewer
         $data = json_decode($raw, true);
         $data = is_array($data) ? $data : [];
         $service = $this->field($data, config('admin.cls.service_field', '__TAG__.container_name'));
+        if ($this->usesLogset()) {
+            $service = $this->services()[$log['TopicId'] ?? ''] ?? '';
+        }
         $level = $this->field($data, config('admin.cls.level_field', 'level_name'));
         $levelMap = config('admin.cls.level_values', []);
         $level = array_search($level, $levelMap, true) ?: $level;

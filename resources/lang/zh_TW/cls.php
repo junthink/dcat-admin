@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'application' => '應用',
+    'all_applications' => '全部應用',
+    'logset_not_found' => '找不到唯一匹配的日誌集，請檢查名稱或設定日誌集 ID。',
+    'cursor_expired' => '分頁已過期或查詢條件已變更，請重新查詢。',
     'title' => 'CLS 業務日誌',
     'description' => '檢索應用程式日誌',
     'start' => '開始時間',

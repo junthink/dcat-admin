@@ -20,8 +20,11 @@ class ClsLogController extends Controller
         $hasMore = false;
         $errors = [];
         $status = 200;
+        $services = [];
+        $result = [];
 
         try {
+            $services = $viewer->services();
             $filters = $viewer->filters($request->query());
             $result = $viewer->search($filters);
             $logs = $result['logs'];
@@ -37,14 +40,18 @@ class ClsLogController extends Controller
 
         $url = admin_url('cls-logs');
         $previousUrl = $status === 200 && $filters['page'] > 1
-            ? $url.'?'.http_build_query(array_replace($filters, ['page' => $filters['page'] - 1])) : null;
+            ? $url.'?'.http_build_query(array_replace($filters, [
+                'page' => $filters['page'] - 1, 'cursor' => $result['previous_cursor'] ?? '',
+            ])) : null;
         $nextUrl = $status === 200 && $hasMore
-            ? $url.'?'.http_build_query(array_replace($filters, ['page' => $filters['page'] + 1])) : null;
+            ? $url.'?'.http_build_query(array_replace($filters, [
+                'page' => $filters['page'] + 1, 'cursor' => $result['next_cursor'] ?? '',
+            ])) : null;
 
         $content->header(trans('admin::cls.title'))->description(trans('admin::cls.description'))
             ->body(view('admin::logs.cls', [
                 'filters' => $filters, 'logs' => $logs, 'errors' => $errors,
-                'services' => $viewer->services(), 'levels' => ClsLogViewer::LEVELS,
+                'services' => $services, 'levels' => ClsLogViewer::LEVELS, 'usesLogset' => $viewer->usesLogset(),
                 'timezone' => $viewer->timezone(), 'url' => $url,
                 'previousUrl' => $previousUrl, 'nextUrl' => $nextUrl,
             ]));

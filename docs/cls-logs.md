@@ -1,32 +1,38 @@
 # CLS 业务日志
 
-可选的腾讯云 CLS 日志浏览功能，默认关闭。启用后在后台前缀下提供只读页面 `/cls-logs`，支持时间范围、服务、日志级别、关键词和分页，沿用所在 Dcat 应用的登录、权限与中间件。不修改日志采集链路，不需要安装腾讯云 SDK 或重新构建前端。
+可选的腾讯云 CLS 日志浏览功能，默认关闭。启用后在后台前缀下提供只读页面 `/cls-logs`，支持时间范围、应用、日志级别、关键词、分页及原始日志详情，沿用所在 Dcat 应用的登录、权限与中间件。无需云 SDK 或前端构建，不修改日志采集链路。
 
 在宿主项目的 `config/admin.php` 增加：
 
 ```php
 'cls' => [
     'enabled' => env('CLS_ENABLED', false),
-    'region' => env('CLS_REGION', 'ap-guangzhou'),
-    'topic_id' => env('CLS_TOPIC_ID'),
+    'region' => env('CLS_REGION', 'me-saudi-arabia'),
+    'logset_id' => env('CLS_LOGSET_ID'),
+    'logset_name' => env('CLS_LOGSET_NAME', 'imee-prod'),
     'secret_id' => env('CLS_SECRET_ID'),
     'secret_key' => env('CLS_SECRET_KEY'),
     'token' => env('CLS_TOKEN'), // 临时凭证可选
-    'services' => ['api' => 'API 服务', 'worker' => '队列服务'],
-    'service_field' => env('CLS_SERVICE_FIELD', '__TAG__.container_name'),
     'level_field' => env('CLS_LEVEL_FIELD', 'level_name'),
     'message_field' => env('CLS_MESSAGE_FIELD', 'message'),
     'page_size' => 100,
     'max_range_hours' => 168,
+    'pagination_ttl' => 600,
 ],
 ```
 
-将 `CLS_ENABLED=true`、实际地域、TopicId 和专用查询凭证写入运行环境。凭证只需对指定日志主题拥有 `cls:SearchLog` 权限。页面查询的主题由服务端配置决定。更改配置后重新生成配置缓存；若使用路由缓存，也需重新生成。多应用分别在对应配置文件启用，默认不会向其他应用添加路由。
+运行环境设置 `CLS_ENABLED=true`、实际地域和专用查询凭证，配置日志集 ID 或名称。ID 优先；仅配置名称时，通过 `DescribeLogsets` 查找唯一精确匹配项，名称不匹配或有歧义时明确报错。随后完整翻页调用 `DescribeTopics`，限定该日志集；每个日志主题自动成为一个应用，主题名称为显示名称，主题 ID 为选择值。新增主题会在下一次查询时出现，无需维护服务列表或重发代码。支持选择单个应用，或选择“全部应用”按日志时间倒序合并。
 
-执行一次 `php artisan admin:cls-install` 创建菜单和 `cls-logs` 权限，再将该权限分配给需要的角色。命令可重复运行，不会自动给普通角色授权，也不会修改已有角色。已有菜单管理方式也可手动配置：URI 为 `cls-logs`，权限方法为 `GET`，路径为 `/cls-logs`。
+凭证需要目标地域的 `cls:DescribeTopics`、目标日志集内所有日志主题的 `cls:SearchLog`；使用日志集名称时还需要 `cls:DescribeLogsets`。日志集和主题范围均由服务端配置控制，客户端不能提交任意主题 ID。任一主题查询失败会显示错误，不会把不完整结果显示为成功。更改配置后重新生成配置缓存；使用路由缓存时也需重新生成。其他 Dcat 应用默认不会增加此路由。
 
-默认服务字段是 TKE 的 `__TAG__.container_name`，级别字段是 Monolog JSON 的 `level_name`，消息字段是 `message`。必须与实际采集结构和 CLS 字段索引一致；`services` 的键是日志中的真实服务值，值是下拉框的显示名称。支持平铺的点号字段和嵌套 JSON 展示。如果级别值使用小写或数字，可设置 `level_values`，例如 `['INFO' => 'info', 'ERROR' => 'error']`。关键词作为短语检索，依赖 CLS 全文索引，不作为任意 CQL 或 SQL 执行。
+执行一次 `php artisan admin:cls-install` 创建菜单和 `cls-logs` 权限，再将该权限分配给需要的角色。命令可重复运行，不会自动给普通角色授权，也不会修改已有角色。也可手动配置：菜单 URI 为 `cls-logs`，权限方法为 `GET`，路径为 `/cls-logs`。同一页面权限可查询所配置日志集内全部应用，不提供逐主题角色权限。
 
-默认最近一小时、每页 100 条、单次最多查询七天。使用应用时区显示和解释时间，结束时间不包含在范围内；翻页保留固定时间和筛选条件。`timezone` 可覆盖应用时区。CLS 的错误详情仅记录错误码和 RequestId，不向页面暴露云凭证或底层异常。
+级别字段默认使用 Monolog JSON 的 `level_name`，消息字段使用 `message`。应用名称直接来自主题，不依赖日志内的 `service`、容器名或 `channel`。支持平铺点号字段和嵌套 JSON 展示。字段应已建立 CLS 索引；若级别使用小写或数字，可配置 `level_values`，例如 `['INFO' => 'info', 'ERROR' => 'error']`。关键词作为一个短语检索，依赖全文索引，不作为任意 CQL 或 SQL 执行。
 
-使用官方 [SearchLog API](https://cloud.tencent.com/document/api/614/56447)，采用 `QueryString`、CQL 语法和 Offset 分页，通过 TC3-HMAC-SHA256 签名。自动化测试使用模拟响应验证查询和权限；真实日志检索仍需在宿主项目配置实际凭证、主题和索引后验收。
+默认最近一小时、每页 100 条、单次最多七天。时间按应用时区解释和显示，结束时间不包含在范围内；`timezone` 可覆盖应用时区。翻页保留固定时间和筛选条件。日志集模式逐主题使用 `SearchLog` 的单主题 Offset，合并有序数据流并保存尚未消费的数据，因此不受一次多主题请求 50 个主题和 Context 共 10,000 条的限制。主题越多，需要的查询请求越多，云端查询费用和响应时间也会随之增加。
+
+翻页快照在 Laravel 默认缓存中加密暂存 10 分钟（`pagination_ttl`，60–3600 秒），链接中仅含随机令牌，绑定当前登录用户、主题范围与查询条件。多 Pod 部署应使用共享 Redis 等缓存，并使用相同 APP_KEY；缓存不可用时明确报错，过期或条件变化后需重新查询。快照仅用于翻页，真实日志仍保留在 CLS。查询期间若主题列表变化，也需重新查询。
+
+兼容 v3.1 单主题模式：当 `logset_id`、`logset_name` 均为空时，仍读取 `topic_id` / `CLS_TOPIC_ID`，使用 `services`、`service_field` 对同一主题内的服务做筛选，保持 Offset 翻页。日志集配置优先于这些旧配置。
+
+采用 TC3-HMAC-SHA256 签名及 `QueryString` / CQL。CLS 错误仅记录错误码、接口名和 RequestId，不向页面暴露云凭证或底层异常。API 参考：[DescribeLogsets](https://cloud.tencent.com/document/api/614/58624)、[DescribeTopics](https://cloud.tencent.com/document/api/614/56454)、[SearchLog](https://cloud.tencent.com/document/api/614/56447)。自动化测试使用模拟响应；真实检索仍需宿主项目实际凭证和索引。

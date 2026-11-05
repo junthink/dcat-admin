@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'application' => 'Application',
+    'all_applications' => 'All applications',
+    'logset_not_found' => 'The configured logset could not be uniquely identified. Check its name or configure its ID.',
+    'cursor_expired' => 'This page has expired or the search conditions have changed. Please search again.',
     'title' => 'CLS business logs',
     'description' => 'Search application logs',
     'start' => 'Start time',

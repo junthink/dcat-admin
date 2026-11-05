@@ -11,9 +11,9 @@
                     <input type="datetime-local" id="cls-end" name="end" class="form-control" value="{{ $filters['end'] }}" step="1" required>
                 </div>
                 <div class="form-group col-md-3">
-                    <label for="cls-service">{{ trans('admin::cls.service') }}</label>
+                    <label for="cls-service">{{ trans('admin::cls.'.($usesLogset ? 'application' : 'service')) }}</label>
                     <select id="cls-service" name="service" class="form-control">
-                        <option value="">{{ trans('admin::cls.all_services') }}</option>
+                        <option value="">{{ trans('admin::cls.'.($usesLogset ? 'all_applications' : 'all_services')) }}</option>
                         @foreach ($services as $value => $label)
                             <option value="{{ $value }}" @selected($filters['service'] === (string) $value)>{{ $label }}</option>
                         @endforeach
@@ -59,7 +59,7 @@
                 <thead>
                 <tr>
                     <th>{{ trans('admin::cls.time') }}</th>
-                    <th>{{ trans('admin::cls.service') }}</th>
+                    <th>{{ trans('admin::cls.'.($usesLogset ? 'application' : 'service')) }}</th>
                     <th>{{ trans('admin::cls.level') }}</th>
                     <th>{{ trans('admin::cls.message') }}</th>
                 </tr>

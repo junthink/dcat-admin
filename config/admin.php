@@ -6,6 +6,8 @@ return [
     'cls' => [
         'enabled' => env('CLS_ENABLED', false),
         'region' => env('CLS_REGION', 'ap-guangzhou'),
+        'logset_id' => env('CLS_LOGSET_ID'),
+        'logset_name' => env('CLS_LOGSET_NAME'),
         'topic_id' => env('CLS_TOPIC_ID'),
         'secret_id' => env('CLS_SECRET_ID'),
         'secret_key' => env('CLS_SECRET_KEY'),
@@ -18,6 +20,7 @@ return [
         'timezone' => null,
         'page_size' => 100,
         'max_range_hours' => 168,
+        'pagination_ttl' => 600,
     ],
 
     /*
