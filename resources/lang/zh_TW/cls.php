@@ -8,6 +8,7 @@ return [
     'cursor_expired' => '分頁已過期或查詢條件已變更，請重新查詢。',
     'title' => 'CLS 業務日誌',
     'description' => '檢索應用程式日誌',
+    'time_range' => '時間區間',
     'start' => '開始時間',
     'end' => '結束時間（不含）',
     'service' => '服務',

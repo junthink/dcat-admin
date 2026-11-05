@@ -8,6 +8,7 @@ return [
     'cursor_expired' => '翻页已过期或查询条件已改变，请重新查询。',
     'title' => 'CLS 业务日志',
     'description' => '检索应用运行日志',
+    'time_range' => '时间区间',
     'start' => '开始时间',
     'end' => '结束时间（不含）',
     'service' => '服务',

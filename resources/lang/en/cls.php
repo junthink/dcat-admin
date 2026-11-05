@@ -8,6 +8,7 @@ return [
     'cursor_expired' => 'This page has expired or the search conditions have changed. Please search again.',
     'title' => 'CLS business logs',
     'description' => 'Search application logs',
+    'time_range' => 'Time range',
     'start' => 'Start time',
     'end' => 'End time (exclusive)',
     'service' => 'Service',

@@ -576,6 +576,11 @@ test('CLS uses native filters, searchable applications, row expansion and cursor
     await page.waitForFunction(() => !!jQuery('[name=start]').data('DateTimePicker') && !!jQuery('[name=service]').data('select2'));
     assert.equal(await page.locator('.grid-filter-form').count(), 1);
     assert.equal(await page.locator('input[name=start]').inputValue(), '2026-11-05 09:00:00');
+    assert.equal(await page.locator('#cls-log-filters .filter-input').count(), 4);
+    assert.equal(await page.evaluate(() => document.querySelector('[name=start]').closest('.filter-input') === document.querySelector('[name=end]').closest('.filter-input')), true);
+    assert.equal(await page.locator('.grid-header').count(), 0);
+    const filterTops = await page.locator('#cls-log-filters .filter-input').evaluateAll(nodes => nodes.map(node => Math.round(node.getBoundingClientRect().top)));
+    assert.equal(new Set(filterTops).size, 1);
     assert.equal(await page.locator('.table-scrollbar-x').count(), 1);
     assert.equal(await page.locator('.grid-dropdown-actions').count(), 0);
     assert.equal(await page.locator('[type=checkbox]').count(), 0);

@@ -2,6 +2,7 @@
 
 namespace Dcat\Admin\LogViewer;
 
+use Dcat\Admin\Admin;
 use Dcat\Admin\Grid;
 use Dcat\Admin\Widgets\Alert;
 use Dcat\Admin\Widgets\Card;
@@ -38,23 +39,48 @@ class ClsLogPage implements Renderable
         ));
 
         $grid->filter(function (Grid\Filter $filter) use ($data, $filters) {
-            $filter->panel()->expand()->setAction($data['url']);
+            $filter->panel()->expand()->setAction($data['url'])->setFilterID('cls-log-filters');
             // CLS filtering was already validated and applied by ClsLogViewer, not SQL.
             $format = ['format' => 'YYYY-MM-DD HH:mm:ss'];
-            $filter->equal('start', trans('admin::cls.start'))
-                ->ignore()->datetime($format)->default(str_replace('T', ' ', $filters['start']))->width(6);
-            $filter->equal('end', trans('admin::cls.end'))
-                ->ignore()->datetime($format)->default(str_replace('T', ' ', $filters['end']))->width(6);
+            $filter->use(new ClsLogTimeRange('time', trans('admin::cls.time_range')))
+                ->ignore()->datetime($format)->default([
+                    'start' => str_replace('T', ' ', $filters['start']),
+                    'end' => str_replace('T', ' ', $filters['end']),
+                ])->width(5);
             $filter->equal('service', trans('admin::cls.'.($data['usesLogset'] ? 'application' : 'service')))
                 ->ignore()->select($data['services'])
                 ->placeholder(trans('admin::cls.'.($data['usesLogset'] ? 'all_applications' : 'all_services')))
-                ->default($filters['service'])->width(4);
+                ->default($filters['service'])->width(3);
             $filter->equal('level', trans('admin::cls.level'))
                 ->ignore()->select(array_combine(ClsLogViewer::LEVELS, ClsLogViewer::LEVELS))
-                ->placeholder(trans('admin::cls.all_levels'))->default($filters['level'])->width(3);
+                ->placeholder(trans('admin::cls.all_levels'))->default($filters['level'])->width(2);
             $filter->equal('keyword', trans('admin::cls.keyword'))
-                ->ignore()->placeholder(trans('admin::cls.keyword_placeholder'))->default($filters['keyword'])->width(5);
+                ->ignore()->placeholder(trans('admin::cls.keyword_placeholder'))->default($filters['keyword'])->width(2);
         });
+
+        Admin::style(<<<'CSS'
+#cls-log-filters .grid-filter-form > .row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.8fr) minmax(0, 1.6fr) minmax(0, 1.1fr) minmax(0, 1.5fr) auto auto;
+    gap: .5rem;
+    align-items: start;
+    margin: 0;
+}
+#cls-log-filters .filter-input { min-width: 0; width: auto; max-width: none; padding: 0; }
+#cls-log-filters .form-group { margin-bottom: 0; }
+#cls-log-filters .input-group-prepend { width: 100%; margin: 0; }
+#cls-log-filters .input-group-prepend .input-group-text { border: 0; padding: 0 0 .4rem; }
+#cls-log-filters .filter-input:first-child input { font-size: 11px; padding-left: .4rem; padding-right: .4rem; }
+#cls-log-filters .submit, #cls-log-filters .reset { align-self: end; }
+#cls-log-filters .submit, #cls-log-filters .reset { margin-left: 0 !important; white-space: nowrap; }
+@media (max-width: 991.98px) {
+    #cls-log-filters .grid-filter-form > .row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #cls-log-filters .filter-input:first-child, #cls-log-filters .filter-input:nth-child(4) { grid-column: 1 / -1; }
+}
+@media (max-width: 575.98px) {
+    #cls-log-filters .filter-input { grid-column: 1 / -1; }
+}
+CSS);
 
         if ($data['errors']) {
             return Card::make($grid->renderFilter())->render()
@@ -75,7 +101,6 @@ class ClsLogPage implements Renderable
             ->expand(function (Grid\Displayers\Expand $expand) {
                 return '<pre class="p-2 mb-0" style="max-height:28rem;white-space:pre-wrap;overflow-wrap:anywhere">'.e($expand->row['details']).'</pre>';
             });
-        $grid->header(e(trans('admin::cls.count', ['count' => count($logs)])));
         $grid->footer(e(trans('admin::cls.page', ['page' => $filters['page']])));
 
         return $grid->render();
