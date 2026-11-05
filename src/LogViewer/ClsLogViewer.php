@@ -50,8 +50,8 @@ class ClsLogViewer
     {
         $filters = array_replace($this->defaults(), Arr::only($input, array_keys($this->defaults())));
         $validator = Validator::make($filters, [
-            'start' => ['required', 'date_format:Y-m-d\TH:i:s,Y-m-d\TH:i'],
-            'end' => ['required', 'date_format:Y-m-d\TH:i:s,Y-m-d\TH:i', 'after:start'],
+            'start' => ['required', 'date_format:Y-m-d\TH:i:s,Y-m-d\TH:i,Y-m-d H:i:s,Y-m-d H:i'],
+            'end' => ['required', 'date_format:Y-m-d\TH:i:s,Y-m-d\TH:i,Y-m-d H:i:s,Y-m-d H:i', 'after:start'],
             'service' => ['nullable', 'string', Rule::in(array_keys($this->services()))],
             'level' => ['nullable', 'string', Rule::in(self::LEVELS)],
             'keyword' => ['nullable', 'string', 'max:500', 'not_regex:/[\x00-\x1f\x7f]/u'],

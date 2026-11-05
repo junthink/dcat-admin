@@ -110,7 +110,7 @@ class ClsLogViewerTest extends TestCase
     {
         $this->login();
         Http::fake(['cls.tencentcloudapi.com' => Http::response(['Response' => ['ListOver' => true, 'Results' => null]])]);
-        $this->get('/admin/cls-logs')->assertOk()->assertSee('No matching logs.');
+        $this->get('/admin/cls-logs')->assertOk()->assertSee('No data.');
         $this->get('/admin/cls-logs?service=&level=&keyword=')->assertOk();
         Http::assertSent(fn ($request) => $request['QueryString'] === '*' && $request['To'] - $request['From'] === 3600000);
     }
@@ -127,7 +127,7 @@ class ClsLogViewerTest extends TestCase
         parse_str(parse_url($next, PHP_URL_QUERY), $query);
         $this->assertSame($this->filters(), array_intersect_key($query, $this->filters()));
         $this->assertSame('2', $query['page']);
-        $this->get($next)->assertOk()->assertSee('Previous page');
+        $this->get($next)->assertOk()->assertSee('rel="prev"', false);
         Http::assertSent(fn ($request) => $request['Offset'] === 2 && $request['From'] === 1793754000000 && $request['To'] === 1793757600000);
     }
 
@@ -138,6 +138,7 @@ class ClsLogViewerTest extends TestCase
             [['start' => '2026-10-01T09:00:00']], [['service' => 'unconfigured']],
             [['level' => 'ALL OR *']], [['keyword' => ['array']]],
             [['keyword' => "line\nfeed"]], [['page' => -1]], [['page' => '1e9']],
+            [['start' => ['array']]], [['end' => ['array']]], [['service' => ['api']]], [['cursor' => ['array']]],
         ];
     }
 
@@ -175,14 +176,14 @@ class ClsLogViewerTest extends TestCase
             'Error' => ['Code' => 'AuthFailure', 'Message' => 'test-secret must not be shown'], 'RequestId' => 'request-test',
         ]])]);
         $this->get('/admin/cls-logs')->assertStatus(503)->assertSee('temporarily unavailable')
-            ->assertDontSee('test-secret')->assertDontSee('No matching logs.');
+            ->assertDontSee('test-secret')->assertDontSee('No data.');
     }
 
     public function test_connection_failure_does_not_look_like_empty_logs(): void
     {
         $this->login();
         Http::fake(['cls.tencentcloudapi.com' => Http::failedConnection()]);
-        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('No matching logs.');
+        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('No data.');
     }
 
     public static function malformedResponses(): array
@@ -199,7 +200,7 @@ class ClsLogViewerTest extends TestCase
     {
         $this->login();
         Http::fake(['cls.tencentcloudapi.com' => Http::response($body)]);
-        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('No matching logs.');
+        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('No data.');
     }
 
     public function test_custom_fields_numeric_level_and_nested_json_are_supported(): void

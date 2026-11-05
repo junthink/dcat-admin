@@ -4,6 +4,7 @@ namespace Dcat\Admin\Http\Controllers;
 
 use Dcat\Admin\Layout\Content;
 use Dcat\Admin\LogViewer\ClsLogException;
+use Dcat\Admin\LogViewer\ClsLogPage;
 use Dcat\Admin\LogViewer\ClsLogViewer;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -48,10 +49,14 @@ class ClsLogController extends Controller
                 'page' => $filters['page'] + 1, 'cursor' => $result['next_cursor'] ?? '',
             ])) : null;
 
-        $content->header(trans('admin::cls.title'))->description(trans('admin::cls.description'))
-            ->body(view('admin::logs.cls', [
+        // Native filter presenters also read the query. Keep scalar validated/display values
+        // and PJAX routing only; never forward cursors through a new filter submission.
+        $pjax = $request->query('_pjax');
+        $request->query->replace(array_filter($filters, 'is_scalar') + (is_string($pjax) ? ['_pjax' => $pjax] : []));
+        $content->header(trans('admin::cls.title'))->description(trans('admin::cls.description').' ('.$viewer->timezone().')')
+            ->body(new ClsLogPage([
                 'filters' => $filters, 'logs' => $logs, 'errors' => $errors,
-                'services' => $services, 'levels' => ClsLogViewer::LEVELS, 'usesLogset' => $viewer->usesLogset(),
+                'services' => $services, 'usesLogset' => $viewer->usesLogset(),
                 'timezone' => $viewer->timezone(), 'url' => $url,
                 'previousUrl' => $previousUrl, 'nextUrl' => $nextUrl,
             ]));

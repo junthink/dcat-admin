@@ -154,7 +154,7 @@ class ClsLogsetTest extends TestCase
         $this->assertSame('2', $query['page']);
         $this->assertSame('ERROR', $query['level']);
         $this->assertSame(64, strlen($query['cursor']));
-        $this->get($next)->assertOk()->assertSee('Previous page')->assertSee('api-700')->assertSee('worker-700');
+        $this->get($next)->assertOk()->assertSee('rel="prev"', false)->assertSee('api-700')->assertSee('worker-700');
     }
 
     public function test_topic_discovery_never_runs_before_login_and_permission_checks(): void
@@ -232,7 +232,7 @@ class ClsLogsetTest extends TestCase
     {
         $this->login();
         $this->fake(fn () => ['Error' => ['Code' => 'UnauthorizedOperation', 'Message' => 'test-secret']]);
-        $this->get('/admin/cls-logs')->assertStatus(503)->assertSee('temporarily unavailable')->assertDontSee('test-secret')->assertDontSee('No matching logs.');
+        $this->get('/admin/cls-logs')->assertStatus(503)->assertSee('temporarily unavailable')->assertDontSee('test-secret')->assertDontSee('No data.');
         Http::assertSentCount(1);
     }
 
@@ -248,7 +248,7 @@ class ClsLogsetTest extends TestCase
         $this->login();
         $this->fake(fn ($action, $r) => $action === 'SearchLog' && $r['TopicId'] === 'worker'
             ? ['Error' => ['Code' => 'UnauthorizedOperation', 'Message' => 'private']] : null);
-        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('api-900')->assertDontSee('No matching logs.');
+        $this->get('/admin/cls-logs')->assertStatus(503)->assertDontSee('api-900')->assertDontSee('No data.');
     }
 
     public function test_all_applications_include_more_than_fifty_topics(): void

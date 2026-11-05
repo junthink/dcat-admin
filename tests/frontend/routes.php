@@ -10,6 +10,8 @@ use Dcat\Admin\Widgets\Modal;
 use Dcat\Admin\Widgets\Tab;
 use Illuminate\Support\Facades\Route;
 
+require __DIR__.'/cls.php';
+
 Admin::routes();
 
 Route::middleware('admin')->prefix('admin')->group(function () {

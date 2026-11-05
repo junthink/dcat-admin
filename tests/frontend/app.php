@@ -17,6 +17,11 @@ $app = Application::configure(basePath: $runtime)
 $app->useLangPath(realpath(__DIR__.'/../../resources/lang'));
 $app->afterBootstrapping(LoadConfiguration::class, static function ($app) use ($runtime) {
     $admin = require __DIR__.'/../../config/admin.php';
+    $admin['cls'] = [
+        'enabled' => true, 'region' => 'me-saudi-arabia', 'logset_id' => 'browser-logset',
+        'secret_id' => 'browser-mock', 'secret_key' => 'browser-mock-secret',
+        'timezone' => 'Asia/Shanghai', 'page_size' => 2,
+    ];
     $admin['auth']['controller'] = AuthController::class;
     $admin['database']['connection'] = 'sqlite';
     $admin['directory'] = $runtime.'/app/Admin';
