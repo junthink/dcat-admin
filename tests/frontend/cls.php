@@ -26,7 +26,7 @@ Http::fake(function ($request) {
             if ($timestamp >= $request['From'] && $timestamp < $request['To']) {
                 $rows[] = ['TopicId' => $id, 'Time' => $timestamp, 'HostName' => $id.'-pod',
                     'LogJson' => json_encode(['level_name' => 'ERROR', 'message' => $id.'-'.$time.($id === 'api' ? ' <script>window.__clsXss=1</script>' : ' 业务处理失败'),
-                        'context' => ['request_id' => 'native-cls-browser'], 'extra' => ['unicode' => '业务日志']])];
+                        'context' => ['request_id' => 'native-cls-browser'], 'extra' => ['unicode' => '业务日志', 'long_value' => str_repeat('long-log-value-', 2000)]])];
             }
         }
     }

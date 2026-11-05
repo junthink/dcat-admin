@@ -97,9 +97,11 @@ CSS);
             return '<div class="text-break" style="white-space:pre-wrap;min-width:16rem;max-width:70rem">'.e($value).'</div>'
                 .'<small class="text-muted">'.e($column->getOriginalModel()['source']).'</small>';
         });
-        $grid->column('details', trans('admin::cls.details'))->display(fn () => trans('admin::cls.details'))
+        $grid->column('details', ' ')->display(fn () => '<span class="position-relative"><span class="sr-only">'.e(trans('admin::cls.details')).'</span></span>')->width(48)
             ->expand(function (Grid\Displayers\Expand $expand) {
-                return '<pre class="p-2 mb-0" style="max-height:28rem;white-space:pre-wrap;overflow-wrap:anywhere">'.e($expand->row['details']).'</pre>';
+                return '<div class="cls-log-details" style="contain:inline-size;min-width:0;max-width:100%">'
+                    .'<pre class="p-2 mb-0" style="max-height:28rem;max-width:100%;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word">'
+                    .e($expand->row['details']).'</pre></div>';
             });
         $grid->footer(e(trans('admin::cls.page', ['page' => $filters['page']])));
 
